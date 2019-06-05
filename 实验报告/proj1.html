@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>proj1.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: "Segoe WPC", "Segoe UI", "SFUIText-Light", "HelveticaNeue-Light", sans-serif, "Droid Sans Fallback";
+	font-size: 14px;
+	padding: 0 12px;
+	line-height: 22px;
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	color: #4080D0;
+	text-decoration: none;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+h1 code,
+h2 code,
+h3 code,
+h4 code,
+h5 code,
+h6 code {
+	font-size: inherit;
+	line-height: auto;
+}
+
+a:hover {
+	color: #4080D0;
+	text-decoration: underline;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left: 5px solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 14px;
+	line-height: 19px;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+.mac code {
+	font-size: 12px;
+	line-height: 18px;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+/** Theming */
+
+.vscode-light,
+.vscode-light pre code {
+	color: rgb(30, 30, 30);
+}
+
+.vscode-dark,
+.vscode-dark pre code {
+	color: #DDD;
+}
+
+.vscode-high-contrast,
+.vscode-high-contrast pre code {
+	color: white;
+}
+
+.vscode-light code {
+	color: #A31515;
+}
+
+.vscode-dark code {
+	color: #D7BA7D;
+}
+
+.vscode-light pre:not(.hljs),
+.vscode-light code > div {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre:not(.hljs),
+.vscode-dark code > div {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre:not(.hljs),
+.vscode-high-contrast code > div {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+.vscode-light blockquote,
+.vscode-dark blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.vscode-high-contrast blockquote {
+	background: transparent;
+	border-color: #fff;
+}
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family:  "Meiryo", "Segoe WPC", "Segoe UI", "SFUIText-Light", "HelveticaNeue-Light", sans-serif, "Droid Sans Fallback";
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+<link rel="stylesheet" href="file:///i%3A/11/chengshe/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/markdown.css" type="text/css">
+</head>
+<body>
+<h1 id="proj1%E5%AE%9E%E9%AA%8C">proj1实验</h1>
+<h1 id="1%E5%B8%A6%E5%8F%82%E6%95%B0%E7%9A%84%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8">1.带参数的系统调用</h1>
+<h2 id="%E5%AE%9E%E9%AA%8C%E8%BF%87%E7%A8%8B">实验过程</h2>
+<ul>
+<li>阅读sleep函数实现，发现内核通过argint获取用户传递参数，参数为int型</li>
+</ul>
+<pre class="hljs"><code><div>// Fetch the nth 32-bit system call argument.
+int
+argint(int n, int *ip)
+{
+  return fetchint((myproc()-&gt;tf-&gt;esp) + 4 + 4*n, ip);
+}
+</div></code></pre>
+<blockquote>
+<ul>
+<li>第一个参数n，即获取第n个参数的值。第二个参数ip是获取用户传递参数的返回指针。</li>
+<li>4*n的4是指一个int占四个字节。为什么是esp+4，而不是esp。原因是esp用于指向栈的栈顶（下一个压入栈的活动记录的顶部），而栈由高地址向低地址成长，函数调用是用入栈的方式传递参数，故在函数处理参数时，esp+4就是最后一个入栈的参数的地址。esp+4+4*n就是第n个参数的值了。</li>
+</ul>
+</blockquote>
+<ul>
+<li>修改sysproc.c中系统调用shutdown的定义。获取输入参数，打印语句。</li>
+</ul>
+<pre class="hljs"><code><div>int
+sys_shutdown(void){
+  int n;
+  if(argint(0,&amp;n)&lt;0)
+    return -1;
+  cprintf(&quot;Leaving with code %d.\n&quot;,n);
+  outw(0x604, 0x2000);
+  return 0;
+}
+</div></code></pre>
+<ul>
+<li>修改shutdown.c。增加获取int输入参数语句。</li>
+</ul>
+<pre class="hljs"><code><div>int
+main(int argc, char *argv[])
+{
+  int a = atoi(argv[1]);
+  shutdown(a);
+  exit();
+}
+</div></code></pre>
+<h1 id="2%E7%90%86%E8%A7%A3%E8%BF%9B%E7%A8%8B%E5%88%87%E6%8D%A2">2.理解进程切换</h1>
+<ul>
+<li>CPU在执行scheduler()时运行在用户态还是内核态？运行在哪个栈上面？</li>
+</ul>
+<p>在main函数的入口处打断点，查看寄存器，可得内核空间的栈地址是0x8010b000~0x8010bfff</p>
+<pre class="hljs"><code><div>(gdb) info reg
+eax            0x80102e60       -2146423200
+ecx            0x0      0
+edx            0x1f0    496
+ebx            0x10074  65652
+esp            0x8010b5d0       0x8010b5d0
+ebp            0x7bf8   0x7bf8
+esi            0x10074  65652
+edi            0x0      0
+eip            0x80102e60       0x80102e60 &lt;main&gt;
+eflags         0x86     [ PF SF ]
+cs             0x8      8
+ss             0x10     16
+</div></code></pre>
+<p>在scheduler()函数打断点，查看寄存器</p>
+<pre class="hljs"><code><div>(gdb) info reg
+eax            0x0      0
+ecx            0x1      1
+edx            0x80112780       -2146359424
+ebx            0x0      0
+esp            0x8010b578       0x8010b578 &lt;stack+4024&gt;
+ebp            0x8010b598       0x8010b598 &lt;stack+4056&gt;
+esi            0x10074  65652
+edi            0x0      0
+eip            0x80103a41       0x80103a41 &lt;scheduler+1&gt;
+eflags         0x82     [ SF ]
+cs             0x8      8
+ss             0x10     16
+ds             0x10     16
+es             0x10     16
+fs             0x0      0
+gs             0x0      0
+</div></code></pre>
+<blockquote>
+<p>%cs=8，后两位为00表示内核态，%esp=0x8010b578,是内核空间的栈地址。</p>
+</blockquote>
+<ul>
+<li>当你在命令行敲下shutdown时，系统会创建一个进程执行shutdown.c中的代码，该代码中调用了系统调用void shutdown()，那么，在该进程的执行过程中，在main函数之内、系统调用之前，CPU运行在用户态还是内核态？运行在哪个栈上面？</li>
+</ul>
+<pre class="hljs"><code><div>(gdb) info reg
+eax            0x5b     91
+ecx            0x710    1808
+edx            0x0      0
+ebx            0xbfa8   49064
+esp            0x2fc0   0x2fc0
+ebp            0x2fd8   0x2fd8
+esi            0x0      0
+edi            0x0      0
+eip            0x3f     0x3f
+eflags         0x212    [ AF IF ]
+cs             0x1b     27
+ss             0x23     35
+ds             0x23     35
+es             0x23     35
+fs             0x0      0
+gs             0x0      0
+</div></code></pre>
+<blockquote>
+<p>%cs=27，后两位为11，在用户态，%esp=0x2fc0,是进程的用户栈。</p>
+</blockquote>
+<ul>
+<li>在执行命令shutdown的过程中，当cpu执行到涉及特权指令的函数outw()时，CPU运行在用户态还是内核态？运行在哪个栈上面？</li>
+</ul>
+<pre class="hljs"><code><div>Breakpoint 2, sys_shutdown () at sysproc.c:99
+99        outw(0x604, 0x2000);
+(gdb) info reg
+eax            0x200    512
+ecx            0x1      1
+edx            0x0      0
+ebx            0x80112e4c       -2146357684
+esp            0x8dfbef40       0x8dfbef40
+ebp            0x8dfbef68       0x8dfbef68
+esi            0x8dfbefb4       -1912868940
+edi            0x8dfbefb4       -1912868940
+eip            0x80105638       0x80105638 &lt;sys_shutdown+40&gt;
+eflags         0x282    [ SF IF ]
+cs             0x8      8
+ss             0x10     16
+ds             0x10     16
+es             0x10     16
+fs             0x0      0
+gs             0x0      0
+</div></code></pre>
+<blockquote>
+<p>%cs=8，后两位为00，内核态。%esp=0x8dfbef40，不是内核空间的栈，而是用户的内核栈</p>
+</blockquote>
+<ul>
+<li>为何在执行完swtch函数后，cpu没有像普通函数调用一样返回到scheduler函数中？</li>
+</ul>
+<pre class="hljs"><code><div>(gdb) si
+=&gt; 0x80104679 &lt;swtch+14&gt;:       mov    %edx,%esp
+22        movl %edx, %esp
+(gdb) bt
+#0  swtch () at swtch.S:22
+#1  0x80112784 in cpus ()
+#2  0x80112780 in ?? ()
+#3  0x80102e3f in mpmain () at main.c:57
+#4  0x80102f7f in main () at main.c:37
+(gdb) si
+=&gt; 0x8010467b &lt;swtch+16&gt;:       pop    %edi
+swtch () at swtch.S:25
+25        popl %edi
+(gdb) bt
+#0  swtch () at swtch.S:25
+#1  0x00000000 in ?? ()
+Backtrace stopped: previous frame inner to this frame (corrupt stack?)
+</div></code></pre>
+<blockquote>
+<p>在执行完 movl %edx, %esp 指令后，调用栈发生巨大变化，导致无法回去了。</p>
+</blockquote>
+<pre class="hljs"><code><div>       ————————————————————
+      |  Context *new      |              高
+edx-&gt;  ————————————————————               |
+      |  Context *old      |              |
+eax-&gt;  ————————————————————               V
+      |       eip          |              低
+       ————————————————————
+      |       epb          |
+       ————————————————————
+      |       ebx          |
+       ————————————————————
+      |       esi          |
+       ————————————————————
+      |       edi          |
+esp-&gt;  —————————————————————
+</div></code></pre>
+<blockquote>
+<p>如图所示，其中栈中每个存储区域都是4个字节。最初esp指向eip的位置。这里需要提一下，在执行指令call时，当前指令的下一条指令的地址将会push到栈中，也就是上面看到的eip，这样就可以保证在函数返回时，可以回到函数调用的下一条指令的地方。然后swtch开始执行。通过几条push指令将当前进程的上下文压入栈中。上图表示此时的状态。
+然后，通过两条指令进行进程切换</p>
+</blockquote>
+<pre class="hljs"><code><div>  # Switch stacks
+  movl %esp, (%eax)
+  movl %edx, %esp
+</div></code></pre>
+<blockquote>
+<p>eax中存储的是指向old_proc-&gt;contex的指针，old_proc-&gt;contex是指向当前进程的contex的指针，所以movl %esp, (%eax)，相当于：old_proc-&gt;contex = esp;</p>
+</blockquote>
+<blockquote>
+<p>执行 movl %edx, %esp， 将当前进程的栈指针指向新的进程的上下文。随着几条popl语句，寄存器存入新进程的上下文。指针eip也发生了变化，所以回不去了。</p>
+</blockquote>
+<h1 id="3%E5%AD%90%E8%BF%9B%E7%A8%8B%E4%BC%98%E5%85%88%E7%9A%84fork">3.子进程优先的fork</h1>
+<h2 id="%E5%AE%9E%E9%AA%8C%E8%BF%87%E7%A8%8B">实验过程</h2>
+<ul>
+<li>增加系统调用fork_winner(int winner); 添加全局变量_fork_winner作为算法开关</li>
+</ul>
+<pre class="hljs"><code><div>int _fork_winner = 0;
+
+int
+sys_fork_winner(void){
+  int n;
+  if(argint(0,&amp;n)&lt;0)
+    return -1;
+  _fork_winner = n;
+  //cprintf(&quot;im in sysforkwin %d\n&quot;,_fork_winner);
+  return 0;
+}
+</div></code></pre>
+<ul>
+<li>更改proc.c中fork()函数。在函数即将结束时候，如果fork_winner算法启动，则父进程yield()，放弃本轮CPU。则子进程先执行，父进程后执行</li>
+</ul>
+<pre class="hljs"><code><div>  release(&amp;ptable.lock);
+  if(_fork_winner == 1)
+    yield();
+  return pid;
+</div></code></pre>
+<ul>
+<li>结果展示</li>
+</ul>
+<pre class="hljs"><code><div>$ forktest
+Fork test
+Set child as winner
+Trial 0:  child!  parent!
+Trial 1:  child!  parent!
+Trial 2:  child!  parent!
+Trial 3:  child!  parent!
+Trial 4:  child!  parent!
+Trial 5:  child!  parent!
+Trial 6:  child!  parent!
+Trial 7:  child!  parent!
+Trial 8:  child!  parent!
+Trial 9:  child!  parent!
+
+Set parent as winner
+Trial 0:  parent!  child!
+Trial 1:  parent!  child!
+Trial 2:  parent!  child!
+Trial 3:  parent!  child!
+Trial 4:  parent!  child!
+Trial 5:  parent!  child!
+Trial 6:  parent!  child!
+Trial 7:  parent!  child!
+Trial 8:  parent!  child!
+Trial 9:  parent!  child!
+</div></code></pre>
+<h2 id="%E5%9B%9E%E7%AD%94%E9%97%AE%E9%A2%98">回答问题</h2>
+<ul>
+<li>子进程在诞生后（以其状态标记为runnable为准），scheduler便可选择它运行。在第一次选中它执行时，在swtch的ret指令后，CPU执行的第一条指令是什么，在哪个函数中？这是在哪里设置的？</li>
+</ul>
+<blockquote>
+<p>第一条指令是push %ebp，在forkret函数中，这是在allocproc函数里设置的。在swtch切换上下文后，CPU应该执行的下一条指令在eip中。而eip的值是fork()在申请分配新的进程调用allocproc()时赋值的</p>
+</blockquote>
+<pre class="hljs"><code><div>p-&gt;context-&gt;eip = (uint)forkret;
+</div></code></pre>
+<ul>
+<li>在父进程优先的情况下，偶尔会有子进程先于父进程打印到屏幕的情况出现；在子进程优先的情况下，偶尔也会有父进程先于子进程打印到屏幕的情况。解释可能的原因。</li>
+</ul>
+<blockquote>
+<p>在父进程优先的情况下。父进程要准备输出或输出一部分时，正好父进程的时间片用完了，切换其它进程运行。这时切换到子进程，子进程进行输出，就会出现子进程先于父进程输出的情况。</p>
+</blockquote>
+
+</body>
+</html>

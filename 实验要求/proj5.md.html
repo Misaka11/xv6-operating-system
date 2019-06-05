@@ -1,0 +1,140 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!-- saved from url=(0032)http://www.xzhu.info/os/proj5.md -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<title></title>
+<link rel="stylesheet" href="./proj5.md_files/mdxzhu.css"> </head>
+<body>
+<p>﻿</p>
+
+<a name="Proj-5:--e5--ae--8c--e5--96--84--e9--94--ae--e7--9b--98--e9--a9--b1--e5--8a--a8--ef--bc--8c--e6--b7--bb--e5--8a--a0--e6--96--87--e4--bb--b6--e7--b3--bb--e7--bb--9f--e6--a0--a1--e9--aa--8c-"></a>
+<h3>Proj 5: 完善键盘驱动，添加文件系统校验</h3>
+
+<p>本项目涉及IO和文件系统。</p>
+
+<a name="L1.--e5--ae--8c--e5--96--84--e9--94--ae--e7--9b--98--e9--a9--b1--e5--8a--a8--ef--bc--88-30-25--ef--bc--89-"></a>
+<h4>1. 完善键盘驱动（30%）</h4>
+
+<a name="L1.1--e6--b7--bb--e5--8a--a0-Ctrl-2b-C-e5--bf--ab--e6--8d--b7--e9--94--ae-"></a>
+<h5>1.1 添加Ctrl+C快捷键</h5>
+
+<p>当用户在键盘上同时按下Ctrl和C键时，屏幕上显示 ^C，同时换行，OS将正在执行的进程杀死。具体而言，有以下情况需要考虑。</p>
+
+<ul>
+<li><p>将按下组合键时被打断的那个用户进程杀死。</p></li>
+<li><p>如果不存在那个进程，即，如果用户进程均在阻塞状态，则将正在等待命令行输入的用户进程杀死。(Hint: 如果用户进程在等待命令行输入，则它的chan指向的是…)</p></li>
+<li><p>但如果等待命令行输入的是sh进程，则不可将其杀死，就当做用户按了回车键。</p></li>
+<li><p>^的ASCII码在C语言中可直接用'^‘表示。</p></li>
+</ul>
+
+
+<a name="L1.2--e6--b5--8b--e8--af--95--e7--a8--8b--e5--ba--8f-"></a>
+<h5>1.2 测试程序</h5>
+
+<p>执行make qemu，运行deadloop命令。此时按Ctrl+C，屏幕显示^C，deadloop进程退出，屏幕重新开始接受用户输入。</p>
+
+<pre><code>$ deadloop
+^C
+$
+</code></pre>
+
+<p>运行infread命令。此时按Ctrl+C，屏幕显示^C，infread进程退出，屏幕接受用户输入。</p>
+
+<pre><code>$ infread
+^C
+$
+</code></pre>
+
+<p>在命令行界面直接按Ctrl+C时，屏幕显示^C，同时换行。</p>
+
+<pre><code>$ ^C
+$
+</code></pre>
+
+<p>多测试几次，如：</p>
+
+<pre><code>$ deadloop
+^C
+$ infread
+^C
+$ deadloop
+^C
+$ deadloop
+^C
+$ deadloop
+^C
+^C
+$ $ infread
+^C
+$ 
+</code></pre>
+
+<p>注意，运行deadloop时，偶尔会出现按了一两次ctrl+c后进程并未终止，需要多执行几次才会终止。这是允许的，可能deadloop恰好时间片到达，cpu去执行scheduler，导致myproc指向了0，也即当前进程不是deadloop。</p>
+
+<p>回答问题：</p>
+
+<blockquote><p>阅读infread.c，它是从控制台读入一个字符，然后打印到屏幕上。但如果你在屏幕上连续输入abcdefg，屏幕没有反应，敲回车后，屏幕才会打印abcdefg。为何不是输入a后立即显示a？指出造成这个现象的原因。（提示：main函数中调用的consoleinit会将devsw[CONSOLE].read指向consoleread()，此函数在fs.c的readi中会被调用。）</p></blockquote>
+
+<a name="L2.--e6--b7--bb--e5--8a--a0--e6--96--87--e4--bb--b6--e7--b3--bb--e7--bb--9f--e6--a0--a1--e9--aa--8c--ef--bc--88-70-25--ef--bc--89-"></a>
+<h4>2. 添加文件系统校验（70%）</h4>
+
+<p>当xv6启动时，在mpmain()调用scheduler()函数之前，你需要检验文件系统的一致性，并修正不一致的部分。本实验中你仅需要考虑一种不一致性：<strong>有些inode已经被使用了，但无法从根目录搜寻到它。</strong></p>
+
+<p>比如，/home/xzhu/1.txt对应4个inode，其中，根目录、home目录、xzhu目录、1.txt文件分别对应一个inode。此时，如果根目录的内容中删除了home目录的条目，则home目录、xzhu目录、1.txt文件的inode均有问题；反之，如果仅是home目录中的xzhu条目被删除，则xzhu目录、1.txt文件的inode有问题。修正方式是，归还这些有问题的inode，并归还inode指向的文件所占用的磁盘空间。或者说，将删除操作执行完。在实现过程中，你需要考虑以下因素。</p>
+
+<ul>
+<li><p>由于OS尚未切换到scheduler，所以没有用户进程在运行。此时对IO设备进行操作时只能采用轮询的方法。（<font color="red">为什么不能用中断？实验报告中你要回答这个问题</font>）对磁盘采用轮询的方法进行读写可以参考bootmain.c，你也可以复制其中的代码。</p></li>
+<li><p>每个inode中有一个域用来指示inode是否被使用。阅读xv6参考书第6章的内容。阅读fs.h以了解磁盘上inode的结构。注意，磁盘上的inode与内存中的inode结构不同。</p></li>
+<li><p>为控制复杂度，做以下约定。每个目录文件只占用1个block，即，若inode的type==1，则其size&lt;=512。文件系统有200个inode，即，superblock.nblocks=200。文件系统的大小为1024个block，即，superblock.size=1000。block的大小BSIZE为512字节，根目录占用的inode是第ROOTNO=1个（第0个inode不使用，但是占用磁盘空间）</p></li>
+<li><p>文件系统的磁盘号为1，而不是0。这是在Makefile中指明的(QEMUOPTS中的-hdb fs.img)。如果你读出来的数据不符合预期，可能你读了磁盘0。</p></li>
+<li><p>在遍历目录时，先写伪代码（<font color="red">并写到实验报告中</font>，可以写到纸上，拍照黏贴到报告中），然后逐步实现，不要让硬件细节扰乱思路。你可以暂时不考虑读写磁盘的效率。另外注意每个目录下的 . 和 .. 这两个条目，避免产生死循环。</p></li>
+<li><p>如果你试图将所有inode一次性读入内存，则需要考虑放到何处。内核的栈区域放不下这么多数据。你有三种办法，一是从数据区域划分空间（使用全局变量），这种方法会浪费内存，因为校验完文件系统后这部分内存就没用了，但OS不会释放它；一是依然使用栈区域，但使用一部分作为缓冲，每次只读入少量磁盘数据，从而节省内存；第三种是使用kalloc和kfree。第1种方法的缺点是无法释放内存。第二种和第三种方法可以释放内存，但稍复杂。如果你采用了后两种方法，在实验报告中说明后，会得到一定的加分（5分以内）。</p></li>
+</ul>
+
+
+<p>在实验报告中回答：</p>
+
+<blockquote><p>为何OS尚未切换到scheduler时，读写磁盘不能用中断的方式进行？</p>
+
+<p>写出你遍历目录的伪代码。</p>
+
+<p>你是使用全局变量存储inode，还是使用局部变量或者是用kalloc和kfree？</p></blockquote>
+
+<a name="L2.1--e6--b5--8b--e8--af--95--e7--a8--8b--e5--ba--8f-"></a>
+<h5>2.1 测试程序</h5>
+
+<p>提供了两个坏的文件系统映像，fs5.img和fs5i.img. 按以下步骤测试你的实现。</p>
+
+<p>执行make proj5，xv6将使用有问题的文件系统映像fs5.img。fs5.img包含若干个有问题的inode（这些inode均对应于文件inode，而不是目录inode）。若你的实现是正确的，第1次make proj5后的输出应该如下：</p>
+
+<pre><code>cpu0: starting 0
+
+----------------------------------
+ Running fsck ...
+fsck: inode x is allocated but is not referenced by any dir!Fixing ... done
+fsck: inode x is allocated but is not referenced by any dir!Fixing ... done
+...
+fsck: inode x is allocated but is not referenced by any dir!Fixing ... done
+fsck completed. Fixed x inodes and freed x disk blocks.
+
+----------------------------------
+sb: size 1000 nblocks 941 ninodes 200 nlog 30 logstart 2 inodestart 32 bmap start 58
+</code></pre>
+
+<p>其中‘x’在你的程序中应当是具体的数字，‘…’表示若干行修正提示(这里是为了避免透露坏inode的个数)。最后一行提示fsck completed，接着输出本次修正了多少个inode，释放了多少磁盘块。当第二次执行make proj5，应当提示如下信息。</p>
+
+<pre><code>----------------------------------
+ Running fsck ...
+fsck: no problem found.
+----------------------------------
+</code></pre>
+
+<p>然后，执行make proj5i，将会使用fs5i.img。注意，当你执行完测试程序后，请将原始的fs5.img和fs5i.img复制到文件夹下，否则提交的patch文件会包含修改后的两个img。</p>
+
+<a name="L3.--e4--bd--9c--e4--b8--9a--e6--8f--90--e4--ba--a4-"></a>
+<h4>3. 作业提交</h4>
+
+<p>执行 <code>make submit</code></p>
+
+
+</body><div id="translate-button" style="display: none;"><img src="data:image/png;base64,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"></div></html>

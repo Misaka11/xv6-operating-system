@@ -1,0 +1,79 @@
+diff -uNr /home/proj1-base/proc.c ./proc.c
+--- /home/proj1-base/proc.c	2019-03-29 17:37:40.956858469 +0800
++++ ./proc.c	2019-04-10 14:26:34.000000000 +0800
+@@ -177,6 +177,7 @@
+ // Create a new process copying p as the parent.
+ // Sets up stack to return as if from system call.
+ // Caller must set state of returned proc to RUNNABLE.
++extern int _fork_winner;
+ int
+ fork(void)
+ {
+@@ -217,7 +218,8 @@
+   np->state = RUNNABLE;
+ 
+   release(&ptable.lock);
+-
++  if(_fork_winner == 1)
++    yield();
+   return pid;
+ }
+ 
+diff -uNr /home/proj1-base/shutdown.c ./shutdown.c
+--- /home/proj1-base/shutdown.c	2019-03-29 17:37:40.956858469 +0800
++++ ./shutdown.c	2019-04-10 14:05:38.000000000 +0800
+@@ -7,6 +7,7 @@
+ int
+ main(int argc, char *argv[])
+ {
+-  shutdown();
++  int a = atoi(argv[1]);
++  shutdown(a);
+   exit();
+ }
+diff -uNr /home/proj1-base/syscall.c ./syscall.c
+--- /home/proj1-base/syscall.c	2019-03-29 17:37:40.960857928 +0800
++++ ./syscall.c	2019-04-07 16:18:33.000000000 +0800
+@@ -104,6 +104,7 @@
+ extern int sys_write(void);
+ extern int sys_uptime(void);
+ extern int sys_shutdown(void);
++extern int sys_fork_winner(void);
+ 
+ static int (*syscalls[])(void) = {
+ [SYS_fork]    sys_fork,
+@@ -128,6 +129,7 @@
+ [SYS_mkdir]   sys_mkdir,
+ [SYS_close]   sys_close,
+ [SYS_shutdown] sys_shutdown,
++[SYS_fork_winner] sys_fork_winner,
+ };
+ 
+ void
+diff -uNr /home/proj1-base/sysproc.c ./sysproc.c
+--- /home/proj1-base/sysproc.c	2019-03-29 17:37:40.960857928 +0800
++++ ./sysproc.c	2019-04-10 14:26:36.000000000 +0800
+@@ -92,6 +92,22 @@
+ 
+ int
+ sys_shutdown(void){
++  int n;
++  if(argint(0,&n)<0)
++    return -1;
++  cprintf("Leaving with code %d.\n",n);
+   outw(0x604, 0x2000);
+   return 0;
++}
++
++int _fork_winner = 0;
++
++int
++sys_fork_winner(void){
++  int n;
++  if(argint(0,&n)<0)
++    return -1;
++  _fork_winner = n;
++  //cprintf("im in sysforkwin %d\n",_fork_winner);
++  return 0;
+ }
+\ No newline at end of file

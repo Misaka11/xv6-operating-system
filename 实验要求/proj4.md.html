@@ -1,0 +1,141 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!-- saved from url=(0032)http://www.xzhu.info/os/proj4.md -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<title></title>
+<link rel="stylesheet" href="./proj4.md_files/mdxzhu.css"> </head>
+<body>
+<p>﻿</p>
+
+<a name="Proj-4-ef--bc--9a--e5--bb--b6--e8--bf--9f--e5--88--86--e9--85--8d--e5--a0--86--e7--a9--ba--e9--97--b4--ef--bc--8c--e5--ae--9e--e7--8e--b0--e5--86--99--e6--97--b6--e5--a4--8d--e5--88--b6--e6--9c--ba--e5--88--b6-"></a>
+<h3>Proj 4：延迟分配堆空间，实现写时复制机制</h3>
+
+<p>本项目将探讨一系列内存管理技术，采用这些技术可以尽最大可能节省物理内存，当然，需要以满足应用程序需求为前提。本次实验内容分两部分，一部分为基础任务，实现它们有助于你理解请求分页存储管理，另一部分为开放任务，需要你查找资料，自行实现。<strong>本次实验将根据使用物理内存的多少对作业排名。</strong></p>
+
+<p>系统启动后会显示空闲页框数，如下</p>
+
+<pre><code>xv6...
+cpu0: starting 0
+number of free frames: 56933 
+sb: size 1000 nblocks 941 ninodes 200 nlog 30 logstart 2 inodestart 32 bmap start 58
+init: starting sh
+</code></pre>
+
+<p>你在内核中添加下面的功能可能会让这个数字变小。</p>
+
+<a name="L1.--e5--a0--86--e7--a9--ba--e9--97--b4--e7--9a--84--e5--bb--b6--e8--bf--9f--e9--a1--b5--e9--9d--a2--e5--88--86--e9--85--8d---28-30-25--29-"></a>
+<h4>1. 堆空间的延迟页面分配 (30%)</h4>
+
+<p>xv6的应用程序通过sbrk系统调用向内核申请堆空间（malloc在实现时即通过sbrk申请空间，然后才对申请的空间进行了管理）；在内核中，执行sbrk调用时，内核会分配物理内存。事实上，有时这部分申请的空间并没有被使用。因此，在本项目中你需要修改xv6的这个行为，使得只在应用程序访问对应地址时，xv6才为应用程序分配物理内存。你需要实现以下功能。</p>
+
+<ul>
+<li><p>当应用程序通过sbrk申请空间时，不分配物理内存，但sbrk正常返回，使得应用程序认为已分配了内存。若应用程序请求的空间太大，提前返回-1表示请求失败。</p>
+
+<ul>
+<li>你需要阅读sys_sbrk, growproc, allocuvm，以确定什么叫做请求的空间太大。</li>
+</ul>
+</li>
+<li><p>当应用程序访问sbrk申请的空间时，若尚未分配物理内存，则会触发缺页中断，你需要在trap中做相应处理，分配物理内存。这相当于将growproc的调用时间延迟到了中断处理程序中。只有一点区别：</p></li>
+<li><p>growproc会将所有未分配的物理内存一次全部分配；但在缺页中断处理程序中，你每次只能分配一页物理内存。注意，若触发缺页中断的地址非法（如超过了堆的最高地址），则正常报错，将进程杀死（由于内存保护是以页面为粒度，所以在proc-&gt;sz到向上页对齐的地址之间的访问，因为不会触发缺页中断，所以漏报错误也属正常现象）。</p></li>
+<li><p>正常处理传入sbrk的参数是负值的情况（即释放内存）。</p></li>
+<li><p>仅做以上处理的话fork执行会出错，你应该需要修改copyuvm函数。</p></li>
+</ul>
+
+
+<p>请在<code>trap()</code>函数中增加一个判断：</p>
+
+<pre><code>case T_PGFLT:
+    proc-&gt;tf=tf;
+    pgflt_hdl();
+    break;
+</code></pre>
+
+<p>你需要实现的是<code>pgflt_hdl()</code>函数。此函数所需的中断信息可以从<code>proc-&gt;tf</code>中取得。将处理缺页中断的内容均写到这里。</p>
+
+<p>你应当适时刷新TLB。刷新方法是重置<code>cr3</code>寄存器的值。除了自己写汇编代码外，一个简单方法是像<code>growproc(int)</code>函数一样，调用<code>switchuvm(proc)</code>.</p>
+
+<p>建议在实现完本节的内容后立即做两个测试，均可以通过后，将代码备份，然后再写第2节的内容。这样可以确定错误来源。</p>
+
+<a name="L2.--e5--86--99--e6--97--b6--e5--a4--8d--e5--88--b6--e7--9a--84-fork--28-60-25--29-"></a>
+<h4>2. 写时复制的fork (60%)</h4>
+
+<p>fork产生的子进程和父进程有很大的相似性：代码段一样，数据段一样，栈段一样，堆段也一样。xv6在实现fork时，会为子进程的代码、数据、堆、栈均分配物理内存，这有一些浪费，尤其是，若子进程接着调用了exec，则刚分配的物理内存又需要释放。你需要完成以下任务（请参阅教材9.3节的内容）。</p>
+
+<ul>
+<li>fork执行时，只为子进程创建页表，这个页表完全复制了父进程的页表（包括页框号）。同时，将子进程和父进程的可写页面标记为只读，这些页面称为写时复制页面，它们本来可以被写，只是因为写时复制技术才标记为只读，你需要将这些页面与本来就是只读的页面做区分（缺页中断时需要区分处理）。可以通过页表项中的第9-11位来做标记（这几位硬件未使用，是供操作系统用的，参见<a href="http://wiki.osdev.org/Paging">http://wiki.osdev.org/Paging</a>,xv6并没使用这几位）</li>
+<li>当父进程（或子进程）试图写这些页面时，会触发缺页中断，核实原因为写内存（通过error code判断）并且所写页面为写时复制页面时，再为其分配一个页框，并将原有的内容复制到此页框中，然后修改当前进程的页表项为可写。提示：将页表项的权限改为只读<code>*pte&amp;=~PTE_W</code>；将其设置为可写<code>*pte|=PTE_W</code>。（你应当可以通过error code来区分错误是由1.1中延迟分配的堆引起的还是由1.2的copy-on-write fork引起的，所以这两个任务不冲突。）</li>
+<li>当进程消亡时，需要释放页框。但如果两个进程共享一个页框，则提前消亡的进程在释放页框后会造成存活进程无法正常运行。一种策略是为每个已分配的页框记录一个引用数，记录该页框被几个进程的页表所指，每次释放会将引用数减1，当引用数为0时再真正释放页框。你需要在哪些地方维护这个引用数？请写到课设报告中。</li>
+<li>xv6最多支持64个进程，所以引用数用1个字节表示即可（c语言中可用<code>char</code>类型）。Makefile中指明物理内存大小为256M（QEMUOPTS中的<code>-m 256</code>），据此计算出页框总数，从而得出需要多少字节来存储引用数。为简单起见，你可以在内核里定义一个全局的数组来记录系统启动后页框被进程引用的数量（被内核引用多少次倒不必记录，这里记录的引用数以能满足copy-on-write fork的要求为准）</li>
+<li>如果你要修改<code>kfree</code>,请确保已有代码中的<code>free_frame_cnt++</code>和修改空闲链表的代码一起执行，即，二者要么都不执行，要么都执行，否则<code>free_frame_cnt</code>的值不准。</li>
+<li>由于一个页框可能分配给两个进程，所以有可能出现两个进程同时释放页框的情况，即，在对页框的引用数做修改时可能出现竞争条件。复用kmem.lock来解决这个问题。</li>
+</ul>
+
+
+<a name="L3.--e6--b5--8b--e8--af--95--e7--a8--8b--e5--ba--8f-"></a>
+<h4>3. 测试程序</h4>
+
+<p>运行<code>memtest</code>，预期输出如下：</p>
+
+<pre><code>$ memtest
+number of free frames: 56758
+Test 1 (sbrk without allocating memory):  success!
+Test 2 (write to heap mem):  success!
+Test 3 (deallocating memory):  success!
+Test 4 (allocating too much mem):  success!
+Test 5 (access invalid mem, two page faults):
+pid 4 memtest: trap 14 err 6 on cpu 0 eip 0x261 addr 0x7000--kill proc
+pid 5 memtest: trap 14 err 5 on cpu 0 eip 0x29e addr 0x1fff--kill proc
+</code></pre>
+
+<p>第一行打印出来的页框数有可能不同。第5个测试打印出来的err代码可能会随着你的修改而变化，但无论如何应当由内核打印两条错误信息并将进程杀死。此外，多次运行memtest，第一行打印出来的空闲页框数应当一致，否则存在内存泄露的问题。（如果只实现到1.1，则你打印出来的页框数应当比56758多，也许是56790。）</p>
+
+<p>运行<code>forktest</code>，预期输出如下：</p>
+
+<pre><code>$ forktest
+fork test
+fork test OK
+</code></pre>
+
+<a name="L4.--e5--bc--80--e6--94--be--e4--bb--bb--e5--8a--a1--ef--bc--88-10-25--ef--bc--89-"></a>
+<h4>4. 开放任务（10%）</h4>
+
+<p>实际系统中还有其他可以节省物理内存的技术。当你实现这些技术后，你应当依然能够正常通过<code>memtest</code>和<code>forktest</code>。此时，运行<code>stresstest</code>。未添加任何功能时，输出为</p>
+
+<pre><code>$ stresstest
+created 61 child processes
+pre: 56786, post: 52272
+</code></pre>
+
+<p>实现完2后，你大约可以看到以下输出(可能数字更大)：</p>
+
+<pre><code>$ stresstest
+created 61 child processes
+pre: 56754, post: 52545
+</code></pre>
+
+<p><strong>你需要写到实验报告中的数字是post。你要在课设报告中介绍每一种你实现的技术，以及它节省内存的原理</strong>。</p>
+
+<p>通过以下方式节省的物理内存不算数：</p>
+
+<ul>
+<li>在Makefile中增大qemu的物理内存</li>
+<li>在Makefile中减少应用程序链接的库从而缩小应用程序（这是程序员的事情，不是OS设计者所能控制）</li>
+<li>删除内核已有的一些函数和全局变量（你可以改写以完成同样功能，但不能删减OS功能）</li>
+<li>修改测试程序<code>stresstest.c</code></li>
+</ul>
+
+
+<a name="L-e4--bd--9c--e4--b8--9a--e6--8f--90--e4--ba--a4-"></a>
+<h3>作业提交</h3>
+
+<p>同样，执行 <code>make submit</code>。</p>
+
+<p>可以直接在命令行通过<code>scp</code>提交实验报告，具体命令为</p>
+
+<pre><code>scp proj4.pdf alpha@xzhu.info:/home/alpha/submit-proj4
+</code></pre>
+
+<p>其中, alpha是你的用户名。</p>
+
+
+</body><div id="translate-button" style="display: none;"><img src="data:image/png;base64,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"></div></html>

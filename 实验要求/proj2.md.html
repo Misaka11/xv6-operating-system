@@ -1,0 +1,180 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!-- saved from url=(0032)http://www.xzhu.info/os/proj2.md -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<title></title>
+<link rel="stylesheet" href="./proj2.md_files/mdxzhu.css"> </head>
+<body>
+<a name="Proj-2-ef--bc--9a--e6--b7--bb--e5--8a--a0--e7--ba--bf--e7--a8--8b--e6--94--af--e6--8c--81--ef--bc--8c--e5--ae--9e--e7--8e--b0--e4--bc--98--e5--85--88--e7--ba--a7--e8--b0--83--e5--ba--a6--e7--ae--97--e6--b3--95-"></a>
+<h3>Proj 2：添加线程支持，实现优先级调度算法</h3>
+
+<p>此实验相对而言较难，建议分开做，必要时阅读MIT的xv6书籍。本实验所有系统调用的用户态部分已经写好，你只需要写内核态的部分。</p>
+
+<p>复制<code>proj2-base</code>到目录下并改名为<code>proj2-revise</code></p>
+
+<a name="L1.--e7--ba--bf--e7--a8--8b--e6--94--af--e6--8c--81--ef--bc--88-60-25--ef--bc--89-"></a>
+<h4>1. 线程支持（60%）</h4>
+
+<p>xv6目前不支持多线程，你需要修改内核以支持多线程程序。</p>
+
+<p>任务分为两部分，一部分为库函数，一部分为系统调用。为何分为两部分？因为系统调用的参数较多，库函数可以对系统调用做进一步包装，简化用户的使用负担。事实上，这也是一种通用的做法。</p>
+
+<p>在本次任务实现过程中，你可能会遇到各种各样奇怪的问题。此时，请用gdb设置断点自行调试。如果远程服务器报告内存不足，可使用<code>free</code>命令查看可用内存数量，用<code>who</code>命令查看谁在登陆。可稍后重试。也请检查出问题的同学尽快退出qemu。经测试，系统可以同时运行5个qemu实例，第6个会报内存不足。</p>
+
+<a name="L1.1--e5--ba--93--e5--87--bd--e6--95--b0-"></a>
+<h4>1.1 库函数</h4>
+
+<p>回忆pthread_create, pthread_exit和pthread_join的语义，实现xthread.c中的三个尚未实现的函数，它们分别是：</p>
+
+<p><code>int xthread_create(int *tid, void * (*start_routine)(void *), void *arg)</code></p>
+
+<p>用户进程若调用了这个API，就会在进程内创建一个新的线程：</p>
+
+<ul>
+<li>如果创建成功返回1，失败返回-1</li>
+<li>xv6分配给线程的ID需要保存在tid指向的内存中（即*tid等于ID值）</li>
+<li>线程执行的第一个函数是start_routine，这个函数的参数类型是 void *，返回值也是void *</li>
+<li>arg是start_routine的输入参数</li>
+<li>start_rontine的返回值需要保存下来（保存在什么地方需要自行设计，一般而言无非寄存器、用户栈、内核空间，请自行考虑），用户可以在另一个线程中使用API，xthread_join()，获得此返回值（当然，若未使用xthread_join，则返回值就被丢弃了）。</li>
+</ul>
+
+
+<pre><code>void xthread_exit(void * ret_val_p)
+</code></pre>
+
+<p>调用此API的线程将会退出，返回值为ret_val_p。这个返回值需要保存下来，保存在什么地方需要自行设计。也就是说，线程退出有两种方式，一种是线程执行的函数结束了，另一种是线程主动调用了xthread_exit。你在实现的过程中是需要考虑如何区分这两种方式的。当然，这两种方式的返回值都是需要保存下来的。</p>
+
+<pre><code>void xthread_join(int tid, void ** retval)
+</code></pre>
+
+<p>调用此API的线程会等待，直到tid线程顺利结束。tid线程的返回值被保存在retval指向的内存中，即返回值被放到*retval中。此外，本函数还应当释放用户栈（线程的用户栈是在xthread_create中申请，在本函数中释放）。</p>
+
+<a name="L1.2--e7--b3--bb--e7--bb--9f--e8--b0--83--e7--94--a8-"></a>
+<h4>1.2 系统调用</h4>
+
+<p>没有内核支持很难实现以上功能，所以你应该需要实现三个系统调用，下面是系统调用user wrapper函数的声明。
+<code>
+int clone(void * (*fn)(void *), void *stack, void *arg)
+</code>
+此系统调用在内核中创建一个新的内核级线程，此线程可以共享创建者进程的地址空间。线程创建后，将执行fn处的指令。arg是提供给fn函数的参数。线程使用stack作为用户栈，stack应该由xthread_create通过malloc申请，大小为4096字节，在调用clone时作为参数传入。返回值为正表示执行成功，为线程的pid；返回值为-1表示执行失败。</p>
+
+<p>你可以同时参考fork( ) 和exec( )，有以下需要注意的地方。</p>
+
+<ul>
+<li>fork出来的新进程不共享创建者的地址空间，但clone需要共享。你可以直接使用进程的PCB而不是重新定义一种线程TCB，但你需要思考如何让多个线程共享地址空间。</li>
+<li>新创建的线程需要执行fn处的指令，可以通过设置新线程初始状态的trapframe达到此目的，参考exec。思考如何让新线程使用stack作为用户栈。注意，栈是从高地址向低地址长的，而malloc返回的是内存区域的低地址；另外malloc分配的内存地址可以从任意地址开始，并不一定是页对齐的。</li>
+<li>当fn执行结束时，若它没有主动调用thread_exit，则表明fn通过return某个值的方式结束。为了获取到return的值，你可以设置一个假的返回地址，如0xffffffff，然后在trap中捕获page fault，进行特殊处理。回想函数的返回值从哪里获取。</li>
+<li>用filedup复制的文件描述符记得用fileclose关掉。</li>
+<li>关于函数调用栈的信息可以参阅 <a href="http://wiki.osdev.org/Stack">http://wiki.osdev.org/Stack</a></li>
+</ul>
+
+
+<pre><code>void join(int tid, void ** ret_p, void ** stack)
+</code></pre>
+
+<p>执行此系统调用的线程将等待编号为tid的线程，直到其终止；然后将终止线程的返回值放入<em>ret_p；将终止线程的用户栈放入</em>stack。这样xthread才能通过free函数释放终止线程的用户栈（用户栈是xthread通过malloc申请的）。可以参考wait函数的实现。</p>
+
+<pre><code>void thread_exit(void *ret);
+</code></pre>
+
+<p>线程终止，传入参数ret是线程执行的函数的返回值。此函数需要唤醒通过join等待自己的线程。你可以参考exit的实现。</p>
+
+<p>为简化设计，做以下约定（测试程序遵守这个约定）：</p>
+
+<ul>
+<li>只有进程被创建时的线程（主线程）会执行clone，即，被clone出来的线程不会执行clone。</li>
+<li>只有主线程会调用exit，它不会调用thread_exit。主线程调用exit时，需要将所有未终止的线程全部终止并释放相应内核资源。</li>
+<li>只有主线程会调用fork。</li>
+<li>建议在参数传递过程中，尤其是在用户态和内核态的代码之间传递参数时，添加打印语句。结束后再把这些语句删除。</li>
+<li>你可以在测试阶段修改threadtest.c，但是在做patch文件时一定替换为base中的原始文件。</li>
+</ul>
+
+
+<p>其他部分你可以自行设计，比如PCB包含什么信息。为了防止通过PCB传递大量参数，特约定，在PCB中加第1个4个字节的域不扣分；但每多加4个字节的域扣2分。比如，若在PCB中加void <em>arg，则不扣分，但再加void</em>ret会被扣2分。</p>
+
+<p>请在实验报告中回答：</p>
+
+<blockquote><p>在你的设计中，struct proc增加了几个字节？（优先级调度部分增加的不算）</p></blockquote>
+
+<p>测试时请运行thread_test至少两次。第一次的预期输出为（具体输出可能稍有不同，请阅读threadtest.c文件的注释部分）：</p>
+
+<pre><code class="sh">$ threadtest
+-------------------- Test Return Value --------------------
+Child thread 1: count=3
+Child thread 2: count=3
+Main thread: thread 1 returned 2
+Main thread: thread 2 returned 3
+
+-------------------- Test Stack Space --------------------
+ptr1 - ptr2 = 16
+Return value 123
+
+-------------------- Test Thread Count --------------------
+Child process created 60 threads
+Parent process created 61 threads
+</code></pre>
+
+<p>之后不要关闭qemu，接着再运行一次threadtest，第二次的预期输出与第一次相同。若不同，表明释放资源部分有问题。</p>
+
+<a name="L2.--e4--bc--98--e5--85--88--e7--ba--a7--e8--b0--83--e5--ba--a6--ef--bc--88-40-25--ef--bc--89-"></a>
+<h4>2. 优先级调度（40%）</h4>
+
+<p>xv6实现了时间片轮转调度算法。请在此基础上实现一个优先级调度算法，具有三个优先级：</p>
+
+<ul>
+<li><p>优先级3是最低优先级，2次之，1最高</p></li>
+<li><p>每个进程在创建时默认的优先级是2</p></li>
+<li><p>每次需要调度时，总是优先级最高的进程被调度</p></li>
+<li><p>具有同一个优先级的多个进程采用轮转调度</p></li>
+</ul>
+
+
+<p>为了控制本次实验的复杂度，你不需要将进程划分多个队列（当然这样做也可以，只是麻烦了些），新的进程即使具有高优先级也不必考虑立即为它分配CPU，即不必在时间片未到时剥夺其他进程的CPU。（注：你应该需要在struct proc结构体中添加一个标识优先级的域）</p>
+
+<p>为了能从界面上看到调度结果，你需要做以下工作才能运行测试程序schedtest：</p>
+
+<ul>
+<li>在内核中设置一个状态变量display_enabled，如果它的值为1，表明每次发生调度时均需要输出信息；否则，不输出。display_enabled的初始值为0。通过系统调用
+<code>int enable_sched_display(int i);</code>设置状态变量的值。</li>
+<li>对任何进程，在它放弃cpu时，如果display_enabled为1，则在屏幕上打印进程编号如<code>cprintf("%d - ",proc-&gt;pid)</code>。（回想：进程在什么函数中切换回scheduler？）</li>
+<li>提供一个系统调用可以设置进程的优先级
+   <code>int set_priority(int pid, int prior)</code>
+其中pid指进程编号，prior是需要设置的优先级。</li>
+</ul>
+
+
+<p>测试程序的预期运行结果如下。</p>
+
+<pre><code>$ schedtest
+================================
+Parent (pid=3, prior=1)
+Child (pid=4, prior=1) created!
+Child (pid=5, prior=2) created!
+Child (pid=6, prior=3) created!
+Child (pid=7, prior=1) created!
+Child (pid=8, prior=2) created!
+Child (pid=9, prior=3) created!
+Child (pid=10, prior=2) created!
+================================
+3 - 4 - 7 - 4 - 7 - 4 - 7 - 4 - 7 - 4 - 7 - 4 - 7 - 3 - 4 - 4 - 3 - 5 - 8 - 10 - 5 - 8 - 10 - 5 - 8 - 10 - 5 - 8 - 10 - 5 - 8 - 10 - 5 - 3 - 3 - 8 - 3 - 10 - 10 - 3 - 6 - 9 - 6 - 9 - 6 - 9 - 6 - 9 - 6 - 9 - 6 - 9 - 3 - 6 - 6 -
+</code></pre>
+
+<p>请在实验报告中回答以下问题：</p>
+
+<blockquote><p>父进程的优先级为1，为何有时优先级低的子进程会先于它执行？父进程似乎周期性出现在打印列表中，为什么？（你需要阅读schedtest.c）
+set_priority系统调用会否和scheduler函数发生竞争条件（race condition）？你是如何解决的？</p></blockquote>
+
+<a name="L-e4--bd--9c--e4--b8--9a--e6--8f--90--e4--ba--a4-"></a>
+<h4>作业提交</h4>
+
+<p>执行<code>make sumbit</code>，然后上传实验报告至<code>submit-proj2</code>文件夹下。</p>
+
+<p>部分同学通过ftp客户端提交作业，其实没必要。你可以直接在命令行通过<code>scp</code>提交实验报告，具体命令为</p>
+
+<pre><code>scp proj2.pdf alpha@xzhu.info:/home/alpha/submit-proj2
+</code></pre>
+
+<p>其中, alpha是你的用户名。</p>
+
+
+</body><div id="translate-button" style="display: none;"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAABmJLR0QAAAAAAAD5Q7t/AAAACXBIWXMAEgWuABIFrgFpirNTAAAMIUlEQVRo3s1Ze5RV1Xn//b597mMuw/CYEREwRhCVCisian1Q3joQQREhljSKrctXKIlpiHHFB9qoXTYrmiwa2rAqqUgaRFEBQSAIUtKFKChFCM+gCwGFgjAMM3PvOWfvr3/s+2KcQYxD9bvr3Hvufp3v9732/r4DnDL1Yfm/B3+7/lt3NOrXTn3+V4im/NuSpzer0z4vR92+bF4+N417eOGTr2RVb1+l+75sXk6ViqYz4f5Vc362T/Wa51Rr/0O393zwcOrLZi44Beb14lterLz62ze9JhkMfPUVaApgpxoYG7fTryIAAigwpoMfXHlm7+FDVxytQ989f1SkJNZUxrCySpzZvPALPl4J8AsJ4aQauOGXf7j0rMuvXvzhRnSJGiPNSKwWInGWqO4iqIrmSsszF+fNTgCMKmNwGQEDYES+7aMW5r5OYAuAegAPfCY4ttZx3+IPaw8neiza/0eXEImdVaWzSqdw6WRSzh/gtj91VeLCL6iCL0wlAFUdiWNHFQC+O++TW7/ev9OzixcAmURoARh1gMJBFS5IJKVdFffpwdW3c/9603vAGLQ/9wLNNmQZNRyFCQQE6ZyDDesJCpwCxqQYhQ1IVnbEwd3bUHfgPXY9/xJ1cYqII4RN9UhlKtFU18Tqc/pH7c7umE2mgA5GNWVs5t2tjVunT+iw+6QaqJ00fdrgqZMfWbqCSCK2RpyhAlAtU6eBYcCv/wVQmQJydQBNyXFYtjoJqPq+wgUHmCQgBrChH0MAFN9HAaIIUAcwBFIGqG6vePdPR2bMvbN68ujp+/nqlG4KNPOBm2ZvntG3z0X3rFoLaDa2psIZOEChJVcjQDpajbB9E2ER5BmPQYrnJs8oy+Bo2XdzuTV3YxIALQgHdUSkBj2qiT0fH2sEgLCprjjWAzjjEv7q4Ibfd6rD8KeegaYjp5kKNaoC4gTxk0o4eKmSzgUISxL2dlbiW0tQCOTXag6A5XdKev79A6kU0FinmaSR48caLADQ5YqrCzCeaPgA6369/OUDIZAWMEgJLcWvCPhod8Kt7xLmP+J/WTAGBeFYGOUnaeFePJtg/gMICCFghCKEvycohAiUhFII2NjmAEBdXK6BFxWNwOy7a3/18Z5fbr5gyPcW7Xsf7ZuOGSeBkogLMiygJgGlkEQAEpC85Qi9uRUsrYC6XO4Keu2VaUoVcK4gIUcfLIqap3X5yU5DnKDJZj6w/Invr+69PXvZoB/ct6xxL87Z+wE1mTBqxFJVy0BQTRCw5mzYVBo2QNH8aUBVgiyzGfWaY8E9VCEADAEVBzqFWgu6CHHDcQkOfwyNnFVQBXnQ3qycF0qZzzTfyLhz/o+3O1ReXPvD766sqUH/d98RFUdNBwUQQLqdkWQQ7944+9GRYf3eUG23hOoFqkF3QZDOP8/CxxEIoA5xJLCNIA454FBA1gVkHUVDVcT0ylOb6TW241mXjV3ELKrDMNZyd1GnrtyMWwKgAMyf5k8++u/rPrhy9KS7Fl4ztte1K9ZQG3Oi6VRMOCKZIlKJbLhx/mM70cZkdmc4dvhYZ0SYy8GBEJRCgwKALYPV0lHAApBw789yLz1+Xu3m362ZPX4kGFSI1DcFzlJos4qgQ6V0nfhass04F89L35seOqu6AhJmHcBShFUtid6Vyb2VswwccKEAwAtPDZr01rzNT948BKioEGkIjaMhXD1Ueo5sO9E7OADIdD2LQT0UqnCqeZ/zMGzkrf/Ms3sUvUBaX3GbAxIEgN8+0u/+pS99NPX6sUAqgEQWSBoEmfBw2wHIE2HV0gdaeIenZ1QRW4+kqqamdQ30HDnFlP5FRaQLHu32841LV44feR2Qi4CmCDkyaPN8oEONSVpFJ6WBiBR2SBpxsM55TZQ99VMA7rp3anLxrrrfdJ2yp/cJggEw+57h8/9n8Zxhg64DenTG+R07pm1bA3j/v98+mk3iUCoDiDFOqV4NqrCxtQBgy7j+FIAfjzyn6YpeVbeM6FfzBjDiU4e9eVNvWbV32dJrxtVi38XnJdu8KrFt5uVHNy1fMLKiG44l0mJoAgchnAJx5Me4svEt+sCUeXjj8hEV3YY//PLr+abS2QzAjLtHrZj20Jt9Nh/AkULbRQ+EreYWn5c2zRy7aeuSuYO790MuGRiRhHE0QGQlUWDmpAAYwaz8L2DgpMqhg3+wckUBBFkC8dpjVzatnSLFY+GWx5Nt6Q9c9/TEjbuWzBvS8zLYdNKIoUKdMQDgFCePQh0rYGxO8foSF/3lHUOHX/vDDUsAQPVETbQVDbtDywJH8RzLFT+9+c0tC+Zcc96lQJMN8EnW+1z5TtwigMBBq9IKzVmueA06aPIlo2p/tGkR0Cvwi/dpUxCjv4XO09/UZ3re9nZ3lMxVAWDV47es2rH0d9d+s5YYfGX3LgDQPv0ZAFSREKfIpJSJOIslr0KH3ttv9DfGTPxXP2Jrm4bP93blPmmo01uvmnjphg5/M78jTjRzrJj27d8f275x2t+N6RADwMyhPLkJUSEKAla1Mg1G9Tnu2AX06Desb1syXqDf3JO2uw/qH85owJkD/3rchv737Ti3+Zjbruj/j0/s1580b28ZAP1BWFUJB22fgdYfBj7cw7bfevNUn6VpCIHgI9ezX23vt0c8uqR/OUsAsP2bEp0SACklsj51UmoQAGDU5g5coFjJ400OYTa0B7e56j6jRq27dd6GofnuVk22ZQBShK35lIpIACY4ftoAJGsgsc8U6eJQ31vjEr2vumTljTPX33yyeS0f5ghR5zMwnwIV6h6HTlst1CXgHATqoAJQNXLLn3e4csiAudc9+tK9pZHBCUJsGYAArsSqUtXndmHDafOBI/vC40wiXxCAVgQQF0Vu8TLgukk3Pj3ue794zI+MVcr2otZqowQAEqpKEQPWfQTtPmDCIFu/Z0Z8vAG5hrQmqrqpMULSQGDgnF/cGAOoVdI6dbGN4iaqRoxtEwwBCmGjHAiDoF0Fwvjs2NbF/cIgUJCEAk5V21dQ6upDN3tRUr4z9fsPBJKumfeLu+92ZT7Rok3/w0J9Z/8B1/9oQ2ytwggIGxvNnCGs6gJoPhaQXqH5AkpZ3cJfIi2omIAt48ACCEPg6F6HOIzUSLGSRweqCFDXJGrTgUwYDbw1+93FL07/5zE4MldbBTBlqa4/+KEOqGuInFUI1dcjrALOiioUzmcaWgBSWKhYVIGyLJ6V7LEI1/9QfTlGaCl0oI8bDn478vIwYF0WqokE+30DOHAEGw68v//Ot6d2f6dFHwgTXkrO+nqN07zUVEHGFFomxDEQlUBUAqqYEy4nhkojjoaOBv4SOAa0NIz9LywFMYgYUAdVqFMqitVGzWtMtUOGzDVpvGMrMHkcBvS9tNuNrfoAFQwtkYsCFzuFeNMo5KZFYZcyv2LiWpR3oZqqILXYTxYrS8wXfQQqBI1YMSyd9AuPJAAR4ZF6xF/rhmDMQOC5f9nyyPM/n/ZTAGwRwJAuOG+LAz5pkMBab8tBXt1hCBgBTMIbiSuU3srrNwTo4CvNZYFXNV9hzE/RAMgFQM4CR/YGCBtjDQLHokDytbswhK3KmOD6EcSchxfetXrWDTP9ipXSIoD/XLT/n/YfqutxcOf7UcJEcaJdRkwiUwENTEV1Z6dKZA8fg/NFf1AIdf6kq+qIOFYGApAK56AkTEKUJOLI7+bJdEoDUc3u3Yo4JHqNvmlsu07J7rl6X07M1yapEGutMeMmMlo1d/WE1bNuWOC5/CsBDulp21k/L139wOEFvS7rfP3Hu0MHqiippDgJAnPRFWg8tPbVwc/+/Zj1fvTtBJ759PuBcrrrJaUm/OlHDVToX2K4OB8uU8CssmPtbSu1zP6BZ4dRb1vm26SZeaUzwNYPYrwx+y1g2dUKADXnd+pkGwClU6jAKTVTFZiuF+LgjiWvDFn00I1b81CLzAOnIbv6c+k7L+ua3GE38Eh9FFtF0LlLColqbNu1aFbt+hm378GJb0+L9FnviVul8S8oX5zQ8ivS8S+UtNHamOaUOwKTjQkVmHN7ppAzWLv8iftH/O+aJxvzQ770d9InpTEzde3fzlOdukZ1wnO6uGbgEwUhfGWs5KT0o1d056+3qF5157rZZc3mz17w/5PunaUyZ4vuHPaTLc9/Xub/D61PrC9fCdQYAAAAAElFTkSuQmCC"></div></html>

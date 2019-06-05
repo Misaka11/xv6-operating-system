@@ -1,0 +1,200 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!-- saved from url=(0031)http://xzhu.info/os/gdbguide.md -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<title></title>
+<link rel="stylesheet" href="./gdbguide.md_files/mdxzhu.css"> </head>
+<body>
+<a name="L1.--e5--90--af--e5--8a--a8--e8--b0--83--e8--af--95--e7--8e--af--e5--a2--83-"></a>
+<h4>1. 启动调试环境</h4>
+
+<p>假如你写好了一个xv6操作系统，放在~/xv6revise目录下。那么，首先在命令行下不带任何参数执行<code>cd</code>进入你默认的用户目录。在此目录下新建一个.gdbinit文件，里面就一行字
+<code>
+add-auto-load-safe-path ~/xv6revise/.gdbinit
+</code>
+这句话的意思是，将xv6revise目录下的.gdbinit加入safe path。如果你没做这件事件，在做后面步骤时，命令行会出错，提示你这样做。</p>
+
+<p>之后，在命令行通过<code>cd</code>命令进入你的xv6revise目录，执行</p>
+
+<pre><code>$ make qemu-gdb
+</code></pre>
+
+<p>此时，qemu已经启动，你的命令行窗口被挂起，这是因为在等待客户端发命令了。</p>
+
+<p>此时打开另外一个命令行窗口ssh登陆，进入到xv6revise目录下，输入
+<code>
+$gdb
+</code>
+如果你看到了类似如下的提示，说明你成功了</p>
+
+<pre><code>The target architecture is assumed to be i8086
+[f000:fff0]    0xffff0: ljmp   $0xf000,$0xe05b
+0x0000fff0 in ?? ()
++ symbol-file kernel
+(gdb)
+</code></pre>
+
+<p>其中最后一行的<code>(gdb)</code>是命令行提示符，你可以在后面输入命令。你将可以在这个命令行里操控第一个终端挂起的xv6了。</p>
+
+<a name="L2.--e8--b0--83--e8--af--95-xv6"></a>
+<h4>2. 调试xv6</h4>
+
+<p><strong>从i8086到i386</strong></p>
+
+<p>在gdb窗口中输入命令<code>si</code> (step instruction，单步执行)，xv6将执行一条指令，同时显示下一条待执行的指令，如下</p>
+
+<pre><code>(gdb) si
+[f000:e05b]    0xfe05b: cmpl   $0x0,%cs:0x65b4
+0x0000e05b in ?? ()
+</code></pre>
+
+<p>如果你还想单步调试，那么此时不用再输<code>si</code>， 直接敲回车即可，gdb会认为你输入的是上一条命令。单步跟踪多条指令后，你将看到一个i386的提示如下</p>
+
+<pre><code>(gdb)
+[f000:d190]    0xfd190: ljmpl  $0x8,$0xfd198
+0x0000d190 in ?? ()
+(gdb)
+The target architecture is assumed to be i386
+=&gt; 0xfd198:     mov    $0x10,%eax
+0x000fd198 in ?? ()
+(gdb)
+=&gt; 0xfd19d:     mov    %eax,%ds
+0x000fd19d in ?? ()
+(gdb)
+</code></pre>
+
+<p>这是cpu从8086模式转为i386模式。之所以有这个过程是历史原因造成的，感兴趣可以自行搜索。</p>
+
+<p><strong>显示寄存器内容</strong></p>
+
+<p>利用gdb的<code>info reg</code>命令可以显示当前各寄存器的内容。</p>
+
+<pre><code>(gdb) info reg
+eax            0x10 16
+ecx            0x0  0
+edx            0xf431f  1000223
+ebx            0x0  0
+esp            0x7000   0x7000
+ebp            0x0  0x0
+esi            0x0  0
+edi            0x0  0
+eip            0xfd26b  0xfd26b
+eflags         0x6  [ PF ]
+cs             0x8  8
+ss             0x0  0
+ds             0x0  0
+es             0x0  0
+fs             0x0  0
+gs             0x0  0
+</code></pre>
+
+<p>本课程较为关注的几个寄存器<code>esp,eip,cs</code>。其中，<code>esp</code>寄存器指示的是栈顶的地址,<code>eip</code>寄存器指示的是下一条指令的内存地址，在i386模式下，<code>cs</code>寄存器里有权限信息，尤其是指示CPU的特权级别。详情可参阅《INTEL 80386 PROGRAMMER’S REFERENCE MANUAL》（<a href="https://css.csail.mit.edu/6.858/2014/readings/i386.pdf">.pdf</a>）一书，这是一本学汇编必备参考书。</p>
+
+<p>继续说<code>cs</code>寄存器的权限信息。可以参阅上面的书，或者直接读更简短的<a href="http://www.on-time.com/rtos-32-docs/rttarget-32/programming-manual/x86-cpu/protected-mode/cpl.htm">这个链接</a>。简单而言，在i386保护模式下，<code>cs</code>寄存器的后两位指示当前特权级别，0为最高，3为最低，一般操作系统在实现时只使用0和3，未使用1和2。上面显示该寄存器值为8，后两位为00，即，当前cpu执行在内核态。</p>
+
+<p><strong>跟踪系统调用过程</strong></p>
+
+<p>对于我们proj0实现的系统调用shutdown，它的执行过程是什么样的？请做以下操作跟踪它的执行。</p>
+
+<p>首先，在gdb窗口设置一个断点，当<code>eip</code>寄存器的值为0时中断。在shutdown命令以及大多数xv6的应用程序中，main函数的地址都是0，你可以在shutdown.asm看到。然后输入<code>c</code>继续执行，很快你将看到第一次中断。</p>
+
+<pre><code>The target architecture is assumed to be i8086
+[f000:fff0]    0xffff0: ljmp   $0xf000,$0xe05b
+0x0000fff0 in ?? ()
++ symbol-file kernel
+(gdb) break *0
+Breakpoint 1 at 0x0
+(gdb) c
+Continuing.
+The target architecture is assumed to be i386
+=&gt; 0x0: push   $0x24
+
+Breakpoint 1, 0x00000000 in ?? ()
+</code></pre>
+
+<p>用<code>si</code>单步跟踪执行，很快你将看到<code>int $40</code>指令，这是系统调用。执行此指令后，查看寄存器的值。</p>
+
+<pre><code>(gdb) info reg
+eax            0x7  7
+ecx            0x0  0
+edx            0x0  0
+ebx            0x0  0
+esp            0x8dffffe8   0x8dffffe8
+ebp            0x0  0x0
+esi            0x0  0
+edi            0x0  0
+eip            0x80106d08   0x80106d08 &lt;vector64+2&gt;
+eflags         0x202    [ IF ]
+cs             0x8  8
+ss             0x10 16
+ds             0x2b 43
+es             0x2b 43
+fs             0x0  0
+gs             0x0  0
+</code></pre>
+
+<p><code>eax</code>为7，查syscall.h得知7号系统调用为exec，大约是第一个进程的创建过程。不管它，输入<code>c</code>继续执行，你将再次捕获到一次中断，这个是刚刚exec载入的新进程，事实上，是init进程。继续输入<code>c</code>，你将可以在xv6的命令行敲命令，敲入shutdown。此时gdb窗口应当捕获一次中断，这依然不是shutdown进程，是shell进程的runcmd在执行，此函数的地址是0. 继续输入<code>c</code>。</p>
+
+<pre><code>(gdb) c
+Continuing.
+=&gt; 0x0: push   %ebp
+
+Breakpoint 1, 0x00000000 in ?? ()
+(gdb)
+</code></pre>
+
+<p>就是在shutdown命令中了，用<code>si</code>单步跟踪即可。当执行完<code>int 0x40</code>指令后陷入内核。你可以在此指令前后观察<code>cs</code>寄存器的值验证自己的理解。</p>
+
+<p><strong>其他值得探索的命令</strong></p>
+
+<p> gdb的<code>bt</code>(backtrace)命令可以显示当前是在执行哪个函数，以及当前执行的函数是被哪个函数所调用，那个函数又是被哪个函数所调用，等等。这个信息是在栈中保存的(查看<code>esp</code>寄存器便可知道栈在哪里)，因为每执行一次<code>call</code>指令，栈里面就压了一个地址，只要从栈里面不停找这个压着的地址便可找到调用关系。比如下面显示，cpu正在执行spinlock.c文件中的release函数，而这个函数是被proc.c中的scheduler函数调用，scheduler函数又是被main.c中的mpmain函数调用。</p>
+
+<pre><code>(gdb) c
+Continuing.
+^C
+Program received signal SIGINT, Interrupt.
+The target architecture is assumed to be i386
+=&gt; 0x80104e76 &lt;release+77&gt;: leave  
+release (lk=lk@entry=0x80112960 &lt;ptable&gt;) at spinlock.c:64
+64  }
+(gdb) bt
+#0  release (lk=lk@entry=0x80112960 &lt;ptable&gt;) at spinlock.c:64
+#1  0x801049e8 in scheduler () at proc.c:294
+#2  0x80103810 in mpmain () at main.c:62
+#3  0x801037af in main () at main.c:42
+(gdb)
+</code></pre>
+
+<p> 注意，这个命令无法跟踪栈的更换过程。比如，如果你调用了swtch，调用之后栈发生了变化，便无法再根据栈里面的信息找到调用关系。</p>
+
+<p> gdb的<code>x</code>命令可以显示内存的内容。比如下面先用<code>info reg</code>找到栈的地址，然后显示栈的内容</p>
+
+<pre><code>(gdb) info reg
+eax            0x200    512
+ecx            0x80112960   -2146358944
+edx            0x0  0
+ebx            0x10074  65652
+esp            0x8010c5c0   0x8010c5c0 &lt;stack+3952&gt;
+ebp            0x8010c5d8   0x8010c5d8 &lt;stack+3976&gt;
+esi            0x10074  65652
+edi            0x0  0
+eip            0x80104e76   0x80104e76 &lt;release+77&gt;
+eflags         0x206    [ PF IF ]
+cs             0x8  8
+ss             0x10 16
+ds             0x10 16
+es             0x10 16
+fs             0x18 24
+gs             0x18 24
+(gdb) x /10wx 0x8010c5c0
+0x8010c5c0 &lt;stack+3952&gt;:    0x80112960  0x00000000  0x00000010  0x00000020
+0x8010c5d0 &lt;stack+3968&gt;:    0x00000000  0x801049e8  0x8010c608  0x801049e8
+0x8010c5e0 &lt;stack+3984&gt;:    0x80112960  0x8dffec1c
+</code></pre>
+
+<p>其他gdb命令可以查阅<a href="http://xzhu.info/os/gdb-refcard.pdf">gdb-refcard.pdf</a></p>
+
+<p>有兴趣的同学欢迎把你用gdb调试xv6的过程写下来，单独email发给我。</p>
+
+
+</body><div id="translate-button" style="display: none;"><img src="data:image/png;base64,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"></div></html>

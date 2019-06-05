@@ -1,0 +1,107 @@
+diff -uNr /home/proj0-base/main.c ./main.c
+--- /home/proj0-base/main.c	2019-03-14 14:41:11.659459212 +0800
++++ ./main.c	2019-03-22 18:56:59.000000000 +0800
+@@ -52,6 +52,7 @@
+ mpmain(void)
+ {
+   cprintf("cpu%d: starting %d\n", cpuid(), cpuid());
++  cprintf("yize 161630131\n");
+   idtinit();       // load idt register
+   xchg(&(mycpu()->started), 1); // tell startothers() we're up
+   scheduler();     // start running processes
+diff -uNr /home/proj0-base/Makefile ./Makefile
+--- /home/proj0-base/Makefile	2019-03-20 12:41:17.284008692 +0800
++++ ./Makefile	2019-03-22 19:40:08.000000000 +0800
+@@ -166,6 +166,8 @@
+ 	_sh\
+ 	_wc\
+ 	_zombie\
++	_print31\
++	_shutdown\
+ 
+ fs.img: mkfs README $(UPROGS)
+ 	./mkfs fs.img README $(UPROGS)
+diff -uNr /home/proj0-base/print31.c ./print31.c
+--- /home/proj0-base/print31.c	1970-01-01 08:00:00.000000000 +0800
++++ ./print31.c	2019-03-22 17:38:39.000000000 +0800
+@@ -0,0 +1,13 @@
++#include "types.h"
++#include "stat.h"
++#include "user.h"
++
++int
++main(int argc, char *argv[])
++{
++  int i;
++    printf(1,"OS Lab 161630131: ");
++  for(i = 1; i < argc; i++)
++    printf(1, "%s%s", argv[i], i+1 < argc ? " " : "\n");
++  exit();
++}
+\ No newline at end of file
+diff -uNr /home/proj0-base/shutdown.c ./shutdown.c
+--- /home/proj0-base/shutdown.c	1970-01-01 08:00:00.000000000 +0800
++++ ./shutdown.c	2019-03-22 19:45:47.000000000 +0800
+@@ -0,0 +1,11 @@
++#include"types.h"
++#include"stat.h"
++#include"user.h"
++int shutdown();
++
++int
++main(int argc,char*argv[])
++{
++    shutdown();
++    return 0;
++}
+diff -uNr /home/proj0-base/syscall.c ./syscall.c
+--- /home/proj0-base/syscall.c	2019-03-14 14:41:11.659459212 +0800
++++ ./syscall.c	2019-03-22 19:36:39.000000000 +0800
+@@ -103,6 +103,7 @@
+ extern int sys_wait(void);
+ extern int sys_write(void);
+ extern int sys_uptime(void);
++extern int sys_shutdown(void);
+ 
+ static int (*syscalls[])(void) = {
+ [SYS_fork]    sys_fork,
+@@ -126,6 +127,7 @@
+ [SYS_link]    sys_link,
+ [SYS_mkdir]   sys_mkdir,
+ [SYS_close]   sys_close,
++[SYS_shutdown] sys_shutdown,
+ };
+ 
+ void
+diff -uNr /home/proj0-base/syscall.h ./syscall.h
+--- /home/proj0-base/syscall.h	2019-03-14 14:41:11.659459212 +0800
++++ ./syscall.h	2019-03-22 19:35:02.000000000 +0800
+@@ -20,3 +20,4 @@
+ #define SYS_link   19
+ #define SYS_mkdir  20
+ #define SYS_close  21
++#define SYS_shutdown 22
+diff -uNr /home/proj0-base/sysproc.c ./sysproc.c
+--- /home/proj0-base/sysproc.c	2019-03-14 14:41:11.659459212 +0800
++++ ./sysproc.c	2019-03-22 19:47:04.000000000 +0800
+@@ -89,3 +89,10 @@
+   release(&tickslock);
+   return xticks;
+ }
++
++//shutdown
++void
++sys_shutdown(void)
++{
++  outw(0x604,0x2000);
++}
+\ No newline at end of file
+diff -uNr /home/proj0-base/usys.S ./usys.S
+--- /home/proj0-base/usys.S	2019-03-14 14:41:11.659459212 +0800
++++ ./usys.S	2019-03-22 19:41:15.000000000 +0800
+@@ -29,3 +29,4 @@
+ SYSCALL(sbrk)
+ SYSCALL(sleep)
+ SYSCALL(uptime)
++SYSCALL(shutdown)
+\ No newline at end of file

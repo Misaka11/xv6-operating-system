@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>proj3.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: "Segoe WPC", "Segoe UI", "SFUIText-Light", "HelveticaNeue-Light", sans-serif, "Droid Sans Fallback";
+	font-size: 14px;
+	padding: 0 12px;
+	line-height: 22px;
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	color: #4080D0;
+	text-decoration: none;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+h1 code,
+h2 code,
+h3 code,
+h4 code,
+h5 code,
+h6 code {
+	font-size: inherit;
+	line-height: auto;
+}
+
+a:hover {
+	color: #4080D0;
+	text-decoration: underline;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left: 5px solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 14px;
+	line-height: 19px;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+.mac code {
+	font-size: 12px;
+	line-height: 18px;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+/** Theming */
+
+.vscode-light,
+.vscode-light pre code {
+	color: rgb(30, 30, 30);
+}
+
+.vscode-dark,
+.vscode-dark pre code {
+	color: #DDD;
+}
+
+.vscode-high-contrast,
+.vscode-high-contrast pre code {
+	color: white;
+}
+
+.vscode-light code {
+	color: #A31515;
+}
+
+.vscode-dark code {
+	color: #D7BA7D;
+}
+
+.vscode-light pre:not(.hljs),
+.vscode-light code > div {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre:not(.hljs),
+.vscode-dark code > div {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre:not(.hljs),
+.vscode-high-contrast code > div {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+.vscode-light blockquote,
+.vscode-dark blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.vscode-high-contrast blockquote {
+	background: transparent;
+	border-color: #fff;
+}
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family:  "Meiryo", "Segoe WPC", "Segoe UI", "SFUIText-Light", "HelveticaNeue-Light", sans-serif, "Droid Sans Fallback";
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+<link rel="stylesheet" href="file:///i%3A/11/chengshe/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/markdown.css" type="text/css">
+</head>
+<body>
+<h1 id="proj3%E5%AE%9E%E9%AA%8C">proj3实验</h1>
+<h1 id="1%E4%BF%A1%E5%8F%B7%E9%87%8F">1.信号量</h1>
+<h2 id="%E8%AE%BE%E8%AE%A1%E6%80%9D%E8%B7%AF">设计思路</h2>
+<p>我们维护一个信号量池，可容纳100个信号量。每个信号量都有一把锁，同时信号量池也有一把锁来保护资源分配。每个信号量维护一个等待队列，等待自己的进程都放入队列睡觉。</p>
+<p>alloc_sem：如果资源充足，分配一个未使用的信号量并初始化，信号量资源数目-1，返回信号量id</p>
+<p>wait_sem：如果信号量合法，信号量的值value-1，如果值小于0，就将当前进程加入等待队列睡觉</p>
+<p>signal_sem：如果信号量合法，信号量的值value+1，如果值小于等于0，就将喊醒一个等待队列的进程。</p>
+<p>dealloc_sem：如果信号量被使用，使其变成未使用，信号量资源数目+1。同时杀死等待队列中的进程。</p>
+<h2 id="%E5%AE%9E%E9%AA%8C%E8%BF%87%E7%A8%8B">实验过程</h2>
+<p>1.定义信号量及信号量池</p>
+<pre class="hljs"><code><div>struct semaphore{
+  char used;  // if the semaphore have been used
+  int v;  // the value of semaphore
+  int h,t;  // the head and tail of waitqueue
+  struct proc *waitqueue[NPROC+1];  //process waitqueue
+  struct spinlock lock; // lock to protect semaphore
+};
+
+struct{
+  struct semaphore s[SEMNUM]; //the semaphores
+  int sresource;  // semaphore resource 
+  struct spinlock srlock; // the lock to protect allocation of sresource
+}stable;
+</div></code></pre>
+<p>2.定义alloc_sem函数</p>
+<pre class="hljs"><code><div>int alloc_sem (int v){
+  if(v&lt;0) return -1;
+  //test sresource is enough
+  acquire(&amp;stable.srlock);
+  if(stable.sresource &lt;= 0){
+    release(&amp;stable.srlock);
+    return -1;
+  }
+  stable.sresource --;
+  release(&amp;stable.srlock);
+
+  int i;
+  for(i=0;i&lt;SEMNUM;i++){
+    acquire(&amp;stable.s[i].lock);
+    if(!stable.s[i].used){
+      stable.s[i].used = 1;
+      stable.s[i].h = 0;
+      stable.s[i].t = 0;
+      stable.s[i].v = v;
+      release(&amp;stable.s[i].lock);
+      return i;
+    }
+    release(&amp;stable.s[i].lock);
+  }
+
+  return -1;
+}
+</div></code></pre>
+<p>3.定义wait_sem函数</p>
+<pre class="hljs"><code><div>int wait_sem(int i){
+  if(i&gt;=SEMNUM || i&lt;0) return -1;
+
+  struct semaphore *sem = &amp;stable.s[i];
+  acquire(&amp;sem-&gt;lock);
+  if(sem-&gt;used){
+    sem-&gt;v--;
+    if(sem-&gt;v &lt; 0){
+      sem-&gt;waitqueue[sem-&gt;t] = myproc();
+      sem-&gt;t = (sem-&gt;t + 1 ) % (NPROC+1);
+      sleep(myproc(),&amp;sem-&gt;lock);
+    }
+    release(&amp;sem-&gt;lock);
+    return 1;
+  }
+  release(&amp;stable.s[i].lock);
+
+  return -1;
+}
+</div></code></pre>
+<p>4.定义signal_sem函数</p>
+<pre class="hljs"><code><div>int signal_sem(int i){
+  if(i&gt;=SEMNUM || i&lt;0) return -1;
+
+  struct semaphore *sem = &amp;stable.s[i];
+  acquire(&amp;sem-&gt;lock);
+  if(sem-&gt;used){
+    sem-&gt;v++;
+    if(sem-&gt;v &lt;= 0){
+      wakeup(sem-&gt;waitqueue[sem-&gt;h]);
+      sem-&gt;h = (sem-&gt;h + 1) % (NPROC+1);
+    }
+    release(&amp;sem-&gt;lock);
+    return 1;
+  }
+  release(&amp;sem-&gt;lock);
+
+  return -1;
+}
+</div></code></pre>
+<p>5.定义dealloc_sem函数</p>
+<pre class="hljs"><code><div>int dealloc_sem(int i){
+  if(i&gt;=SEMNUM || i&lt;0) return -1;
+  
+  acquire(&amp;stable.s[i].lock);
+  if(stable.s[i].used){
+    stable.s[i].used = 0;
+    acquire(&amp;ptable.lock);
+    int j;
+    for(j=stable.s[i].h;j!=stable.s[i].t;j=(j+1)%(NPROC+1)){
+      struct proc *p = stable.s[i].waitqueue[j];
+      /*p-&gt;killed = 1;
+      // Wake process from sleep if necessary.
+      if(p-&gt;state == SLEEPING)
+        p-&gt;state = RUNNABLE;*/
+      kfree(p-&gt;kstack);
+      p-&gt;kstack = 0;
+      freevm(p-&gt;pgdir);
+      p-&gt;pid = 0;
+      p-&gt;parent = 0;
+      p-&gt;name[0] = 0;
+      p-&gt;killed = 0;
+      p-&gt;state = UNUSED;
+    }
+    release(&amp;ptable.lock);
+    release(&amp;stable.s[i].lock);
+
+    acquire(&amp;stable.srlock);
+    stable.sresource++;
+    release(&amp;stable.srlock);
+    return 1;
+  }
+  release(&amp;stable.s[i].lock);
+
+  return -1;
+}
+</div></code></pre>
+<h2 id="%E5%9B%9E%E7%AD%94%E9%97%AE%E9%A2%98">回答问题</h2>
+<blockquote>
+<p>关于你实现的wait_sem，如果多个进程同时执行wait_sem，但wait的具体信号量不同，它们能并发执行吗？（你应该用一个spinlock去保护一个信号量，另外用一个spinlock保护资源分配）</p>
+</blockquote>
+<p>能并发执行。1.每个信号量都有自己的锁，它们不会互相干扰。2.wait不涉及资源分配，不用拿资源分配的锁</p>
+<h1 id="2%E6%B6%88%E6%81%AF%E4%BC%A0%E9%80%92">2.消息传递</h1>
+<h2 id="%E8%AE%BE%E8%AE%A1%E6%80%9D%E8%B7%AF">设计思路</h2>
+<p>我们假设现在有个邮箱。</p>
+<p>进程通信有两种情况：1.发送者先把send的msg放进邮箱。2.接收者先把receive的msg放进邮箱。不存在同时放msg的情况，通过一个锁来实现。</p>
+<p>1.先send。发送者先看邮箱里有没有接收自己的信，没有。写'send'信并等待。接收者过来，看到有发给自己的信，接收数据，将信标记为回收状态（不同于空状态，必须让发送者回收），喊发送者，然后接收者结束。发送者过来删除信，结束。</p>
+<p>2.先receive。接收者先看邮箱里有没有发给自己的信。没有，写'receive'信并等待。发送者过来，看到有接收自己的信，直接改写该信为自己要发送的信。喊一下接收者并结束。接收者过来接受信的数据，并删除信，结束。</p>
+<p>注意：信的种类，信什么时候删，谁来删。删除太早会导致信号量重复删除，删的人错了会导致重复接收同一封信。错了好几次才改对。</p>
+<h2 id="%E5%AE%9E%E9%AA%8C%E8%BF%87%E7%A8%8B">实验过程</h2>
+<p>1.定义message结构体和邮箱</p>
+<pre class="hljs"><code><div>struct message{
+  int type; //-1:unused;0:send;1:receive;2:recycle
+  int from_pid; //who send data
+  int to_pid; //who receive data
+  int sem_id; //semaphore id
+  int da,db,dc; //data a,b,c
+};
+
+struct{
+  struct message m[MSGNUM];
+  struct spinlock mlock;
+}mtable;
+</div></code></pre>
+<p>2.定义msg_send函数</p>
+<p>首先判断一下pid是否合法</p>
+<pre class="hljs"><code><div> //test pid is exist
+  int flag = 0;
+  acquire(&amp;ptable.lock);
+  struct proc *p;
+  for(p=ptable.proc;p&lt;&amp;ptable.proc[NPROC];p++){
+    if(p-&gt;pid == pid){
+      flag = 1;
+      break;
+    }
+  }
+  release(&amp;ptable.lock);
+  if(!flag) return -1;
+</div></code></pre>
+<p>如果接收信先到了，改信，喊接收者，结束</p>
+<pre class="hljs"><code><div>  acquire(&amp;mtable.mlock);
+  // first receive
+  int j;
+  for(j=0;j&lt;MSGNUM;j++){
+    if(mtable.m[j].type == 1 &amp;&amp; mtable.m[j].to_pid == pid){
+      mtable.m[j].type = 0;
+      mtable.m[j].from_pid = myproc()-&gt;pid;
+      mtable.m[j].da = a;
+      mtable.m[j].db = b;
+      mtable.m[j].dc = c;
+      signal_sem(mtable.m[j].sem_id);
+      release(&amp;mtable.mlock);
+      return 1;
+    }
+  }
+</div></code></pre>
+<p>如果自己先来，写信并等待</p>
+<pre class="hljs"><code><div>  // send 'send' msg into box
+  int i;
+  for(i=0;i&lt;MSGNUM;i++){
+    if(mtable.m[i].type == -1){
+      mtable.m[i].sem_id = alloc_sem(0);
+      //system resource is not enough
+      if(mtable.m[i].sem_id == -1){
+        release(&amp;mtable.mlock);
+        return -1;
+      }
+      mtable.m[i].type = 0;
+      mtable.m[i].from_pid = myproc()-&gt;pid;
+      mtable.m[i].to_pid = pid;
+      mtable.m[i].da = a;
+      mtable.m[i].db = b;
+      mtable.m[i].dc = c;
+      break;
+    }
+  }
+  release(&amp;mtable.mlock);
+  // wait; first send
+  wait_sem(mtable.m[i].sem_id);
+</div></code></pre>
+<p>删除自己的信</p>
+<pre class="hljs"><code><div>  //delete my msg
+  acquire(&amp;mtable.mlock);
+  mtable.m[i].type = -1;
+  dealloc_sem(mtable.m[i].sem_id);
+  release(&amp;mtable.mlock);
+  
+  return 1;
+</div></code></pre>
+<p>3.定义msg_receive函数</p>
+<p>首先，发送者已经到了，取信，标记信并喊发送者，自己结束</p>
+<pre class="hljs"><code><div>  // if first send
+  int j;
+  for(j=0;j&lt;MSGNUM;j++){
+    if(mtable.m[j].type == 0 &amp;&amp; mtable.m[j].to_pid == myproc()-&gt;pid){
+      *a = mtable.m[j].da;
+      *b = mtable.m[j].db;
+      *c = mtable.m[j].dc;
+      from_pid = mtable.m[j].from_pid;
+      signal_sem(mtable.m[j].sem_id);
+      mtable.m[j].type = 2;
+      release(&amp;mtable.mlock);
+      return from_pid;
+    }
+  }
+</div></code></pre>
+<p>如果自己先到，写信并等待</p>
+<pre class="hljs"><code><div> // send 'receive' msg into box
+  int i;
+  for(i=0;i&lt;MSGNUM;i++){
+    if(mtable.m[i].type == -1){
+      //system resource is not enough
+      mtable.m[i].sem_id = alloc_sem(0);
+      if(mtable.m[i].sem_id == -1){
+        release(&amp;mtable.mlock);
+        return -1;
+      }
+      mtable.m[i].type = 1;
+      mtable.m[i].to_pid = myproc()-&gt;pid;
+      break;
+    }
+  }
+  release(&amp;mtable.mlock);
+  // wait, first receive
+  wait_sem(mtable.m[i].sem_id);
+</div></code></pre>
+<p>等到发送者来喊自己，取信，删信，结束</p>
+<pre class="hljs"><code><div>  // receive msg
+  acquire(&amp;mtable.mlock);
+  *a = mtable.m[i].da;
+  *b = mtable.m[i].db;
+  *c = mtable.m[i].dc;
+  from_pid = mtable.m[i].from_pid;
+  //delete msg
+  mtable.m[i].type = -1;
+  dealloc_sem(mtable.m[i].sem_id);
+  release(&amp;mtable.mlock);
+  return from_pid;
+</div></code></pre>
+<h2 id="%E5%9B%9E%E7%AD%94%E9%97%AE%E9%A2%98">回答问题</h2>
+<blockquote>
+<p>如果receive先执行，但send未执行，你是如何让receive阻塞的（或者说阻塞到哪个信号量上了）？如果send先执行，但receive未执行，你是如何让send阻塞的？</p>
+</blockquote>
+<p>如果receive先执行，但send未执行，它会发送一个receive类型的msg，在msg中分配了一个新的信号量，它阻塞在该信号量上。</p>
+<p>如果send先执行，但receive未执行，它会发送一个send类型的msg，在msg中分配了一个新的信号量，它阻塞在该信号量上。</p>
+<h1 id="%E5%AE%9E%E9%AA%8C%E7%BB%93%E6%9E%9C">实验结果</h1>
+<h2 id="%E4%BF%A1%E5%8F%B7%E9%87%8F">信号量</h2>
+<pre class="hljs"><code><div>$ semtest
+illegal input test: success!
+alloc-dealloc test: success!
+created semaphores with indices 0 1 2
+testing semaphore 0 with initial value 1
+-4--4--4--4--4--4--4--4--4--4--4--4--4--4--4--4--4--4--4--4-
+leaving(4)
+-5--5--5--5--5--5--5--5--5--5--5--5--5--5--5--5--5--5--5--5-
+leaving(5)
+-6--6--6--6--6--6--6--6--6--6--6--6--6--6--6--6--6--6--6--6-
+leaving(6)
+-7--7--7--7--7--7--7--7--7--7--7--7--7--7--7--7--7--7--7--7-
+leaving(7)
+-8--8--8--8--8--8--8--8--8--8--8--8--8--8--8--8--8--8--8--8-
+leaving(8)
+testing semaphore 1 with initial value 2
+-9-10---9--10---10-9--10--9-10---9--10--9--10--9--10---10-9--9--10--9--10--9--10--9--10--9--10--9--10--9--10--9--10--9--10--9--9--10--9--10-
+leavin
+leavingg(9)
+(-11-10)
+-1-11-2--11-12---1-11-2--11--12--11--12--11--12--11--12--11--12--11--12--11--12---1211---11--12--11--12--11--12--11--12--11--12--11--12--11--12--11--12-
+leav-12-ing(11)
+-13-
+leaving(12)
+-13--13--13--13--13--13--13--13--13--13--13--13--13--13--13--13--13--13--13-
+leaving(13)
+testing semaphore 2 with initial value 3
+--114-5--16--14--15--16--14--15--16--14--15--16--14--1-16-14-5---14--15--16--14--15--16--14--1-16-5--14--15--16--14--15---14-16--15--14--16--15--14--16--15---15--16-14--14--15--16--14--15--16--14--15--16--14--15--16---15--16-14---16-
+l15-eaving(14)
+-17--
+16--17-leaving(15)
+-18-
+l-17-e-18-aving(16)
+-17--18--17--18--17--18---18-17--17--18--17--18--17--18--17--18--17--18--17--18--1-18-7--17--18--17--18--17--18--17--18---18-17---18-17-
+l-1eaving(17)
+8-
+leaving(18)
+normal test done
+testing dealloc_sem
+pid=20 is going to wait on sem 0
+pid=20 wait on sempid=22 is going to wait on sem 0
+pid=19 is going to wait on sem 0
+ 0: success
+pid=21 is going to wait on sem 0
+parent leaving
+</div></code></pre>
+<h2 id="%E6%B6%88%E6%81%AF%E4%BC%A0%E9%80%92">消息传递</h2>
+<pre class="hljs"><code><div>$ msgtest
+
+child(sender,child+3):  43(23,46) 24(23,27) 25(23,28) 26(23,2728(229(29) 3,323,3(201) 3,30) 32(2) 3,3313(23,34) 32(23,35) 33(2) 3,3634) (2335(23,38) 36(23,,39) 3737(238(23,)
+341) 39(23,440(23,43) 41(23,4,40) 2) 4) 42(23,45) 63(23,66) 44(23,45(23,48) 46(23,49) 47(23,50) 48(23,51) 50(23,53) 51(23,54) 52(23,55) 53(23,56) 54(5547) 49(2323,57) (23,58) 56(23,59) 57(23,6058(259(23,62) 60) 3,61) (23,6361(23,64) 6,52) ) 2(23,65) 83(23,86) 64(23,6765(23,68) 66(23,69) 68(23,71) 69(23,7270(23,73) 72(23,75) 73(23,7674(23,77)) 71(23,74) )  76(23,79) 778(23,81) 79(23,82)80(23,83) 81(23,84) 82(23,85) ) 67(23,70) 75(23,78) 7 (23,80) 103(23,106) 84(23,87) 85(23,88) 86(23,89) 87(23,90) 889(23,92) 90(23,93) 91(23,94) 92(23,95) 994(23,97) 95(23,98) 96(23,99) 97(23,100)98(23,101) 99(23,102) 100(23,103) 101(23,18(23,91) 3(23,96)  04) 102(23,105) 12104(23,107105(23,108) 106(23,109) 107(23,113)0) 108(23,111) 109(23,1(23,126)  1110(23,113) 111(23,114) 112(23,115) 1213(23,1114(23,117) 1)16) 15(23,118) 116(23,119) 117(23,120118(23,121) 119(23,122) 120(2121( ) 32122(23,125),3,124)  123) 124(231126(23,129) 127(23,130),25(23,128)  128(23,131) 129(23,132) 130(23,133) 131(23,13132(23,135) 13127) 4) 3(23,136) 134(23,13135(23,138) 136(23,139) 137(23,140138(23,141) 139(23,142) 140(23,143) 141(23,144) 142(23,145) 1437) ) (23,146)
+messages received from :144 145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 160 161 162 163
+Hello World! Good Morning!�
+</div></code></pre>
+
+</body>
+</html>

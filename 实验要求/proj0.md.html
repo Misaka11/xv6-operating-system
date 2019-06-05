@@ -1,0 +1,103 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!-- saved from url=(0032)http://www.xzhu.info/os/proj0.md -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<title></title>
+<link rel="stylesheet" href="./proj0.md_files/mdxzhu.css"> </head>
+<body>
+<a name="Proj-0-ef--bc--9a--e6--b7--bb--e5--8a--a0--e7--94--a8--e6--88--b7--e5--91--bd--e4--bb--a4--ef--bc--8c--e6--b7--bb--e5--8a--a0--e7--b3--bb--e7--bb--9f--e8--b0--83--e7--94--a8-"></a>
+<h3>Proj 0：添加用户命令，添加系统调用</h3>
+
+<hr>
+
+<p>本项目中你需要添加一个用户命令和一个系统调用。</p>
+
+<a name="L1.--e7--bc--96--e8--af--91--e3--80--81--e8--bf--90--e8--a1--8c-xv6"></a>
+<h4>1. 编译、运行xv6</h4>
+
+<p>运行以下命令，复制一份代码到你的用户目录下</p>
+
+<pre><code>$ cp -R /home/proj0-base ~
+</code></pre>
+
+<p>注意，不要省略了最后那个<code>~</code>，它表示的你的用户目录，张三同学的用户目录是<code>/home/zhangsan/</code>。整个命令的意思是，把<code>/home/</code>下的<code>proj0-base</code>文件夹整个复制到用户目录下：<code>cp</code>是复制命令，<code>-R</code>指的是递归复制子目录，你可以通过<code>man cp</code>来得到不同参数的解释。</p>
+
+<p>将此文件夹重命名为proj0-revise，命令如下</p>
+
+<pre><code>$ mv proj0-base proj0-revise
+</code></pre>
+
+<p>然后，在proj0-revise下修改你的代码。如果出现问题，可以重新复制<code>/home/proj0-base</code>中的代码。</p>
+
+<p>使用<code>cd proj0-revise</code>进入目录，执行<code>make qemu</code>，你应当可以看到以下提示</p>
+
+<pre><code>xv6...
+cpu0: starting 0
+sb: size 1000 nblocks 941 ninodes 200 nlog 30 logstart 2 inodestart 32 bmap start 58
+init: starting sh
+$ 
+</code></pre>
+
+<p>这表示xv6已正常在qemu虚拟机上运行了。由于没有关机命令，如果想关闭虚拟机，需要将你的<code>ssh</code>命令行窗口关掉。</p>
+
+<a name="L2.--e6--b7--bb--e5--8a--a0--e7--94--a8--e6--88--b7--e5--91--bd--e4--bb--a4--28-40-25--29-"></a>
+<h3>2. 添加用户命令(40%)</h3>
+
+<p>在xv6下，执行ls命令，会显示已经实现的命令列表。你需要添加一个新的命令：printxy，其中xy指学号最后两位，比如尾号为31的同学应当实现的命令是print31。当用户在界面敲入printxy Z后，屏幕会显示OS Lab 学号： Z。 例如，学号为041221135的同学应当实现命令print35，他的程序在输入 print35 hello world后，屏幕应当显示：</p>
+
+<pre><code>OS Lab 041221135: hello world
+</code></pre>
+
+<p>如果用户只输入printxy，没加其他参数，则屏幕在显示完“OS Lab 学号：”后，应当换行。</p>
+
+<blockquote><p>请在实验报告中描述你完成本次实验的过程，修改了哪些文件以及起到的作用。</p></blockquote>
+
+<a name="L3.--e6--b7--bb--e5--8a--a0--e5--86--85--e6--a0--b8--e8--be--93--e5--87--ba--e8--af--ad--e5--8f--a5--28-10-25--29-"></a>
+<h3>3. 添加内核输出语句(10%)</h3>
+
+<p>在系统启动时，在内核打印"cpu0: starting 0"之后，打印"sb: size 1000 nblocks"之前，插入一行，打印自己的用户名和学号，最后显示效果如下</p>
+
+<pre><code>xv6...
+cpu0: starting 0
+zhangsan 041221135
+sb: size 1000 nblocks 941 ninodes 200 nlog 30 logstart 2 inodestart 32 bmap start 58
+init: starting sh
+$ 
+</code></pre>
+
+<blockquote><p>请在实验报告中指出在内核输出和在用户空间输出有何不同。你可以从多个角度描述。</p></blockquote>
+
+<a name="L4.--e6--b7--bb--e5--8a--a0--e7--b3--bb--e7--bb--9f--e8--b0--83--e7--94--a8--28-50-25--29-"></a>
+<h3>4. 添加系统调用(50%)</h3>
+
+<ul>
+<li><p>xv6操作系统默认没有关机命令，你需要添加用户命令 shutdown。</p></li>
+<li><p>在xv6中，以下语句可以让它关机：<strong> outw(0x604,0x2000)</strong>。但由于这个语句使用了特权指令，需要在内核态执行，所以不能直接在用户程序中使用。（<strong>2019.3.22 8:22更新</strong>）</p></li>
+<li><p>你需要实现一个系统调用 void shutdown（void）。在系统调用中使用outw(0x604,0x2000)令机器关机，然后在用户命令中调用你实现的这个系统调用。</p></li>
+</ul>
+
+
+<p>判断是否成功的方法是：输入shutdown后，退出qemu到ssh窗口。</p>
+
+<p>请在实验报告中回答以下问题：</p>
+
+<blockquote><p>请描述你添加系统调用的过程（添加用户命令的部分不需重复叙述）。重点解释修改的每个文件所起的作用。</p></blockquote>
+
+<a name="L5.--e4--bd--9c--e4--b8--9a--e6--8f--90--e4--ba--a4-"></a>
+<h3>5. 作业提交</h3>
+
+<p>请依次做这两件事情：</p>
+
+<ul>
+<li><p>在命令行执行<code>make submit</code>，此命令会在你的用户目录下生成一个<code>submit-proj0</code>文件夹，文件夹内会有一个名为<code>proj0.patch</code>的文件，万万不要直接修改这个文件（可能会导致无法从这个文件复原你的工作）。在截止日期前，你可以重复执行<code>make submit</code>生成新的文件覆盖掉原始文件。在截止时间后，你将无法修改。</p>
+
+<ul>
+<li>你在提交前必须阅读下<code>proj0.patch</code>文件，确保每个不同的地方都是有意义的。</li>
+</ul>
+</li>
+<li><p>撰写一份实验报告，命名为<code>proj0.pdf</code>，上传到上一步生成的<code>submit-proj0</code>文件夹下。报告也可以是html文件，但如果是html，请确保没有其他依赖文件，如图片。在实验报告中回答上面提到的问题。不限定模板，尽量整洁、美观。</p></li>
+</ul>
+
+
+
+</body><div id="translate-button" style="display: none;"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAABmJLR0QAAAAAAAD5Q7t/AAAACXBIWXMAEgWuABIFrgFpirNTAAAMIUlEQVRo3s1Ze5RV1Xn//b597mMuw/CYEREwRhCVCisian1Q3joQQREhljSKrctXKIlpiHHFB9qoXTYrmiwa2rAqqUgaRFEBQSAIUtKFKChFCM+gCwGFgjAMM3PvOWfvr3/s+2KcQYxD9bvr3Hvufp3v9732/r4DnDL1Yfm/B3+7/lt3NOrXTn3+V4im/NuSpzer0z4vR92+bF4+N417eOGTr2RVb1+l+75sXk6ViqYz4f5Vc362T/Wa51Rr/0O393zwcOrLZi44Beb14lterLz62ze9JhkMfPUVaApgpxoYG7fTryIAAigwpoMfXHlm7+FDVxytQ989f1SkJNZUxrCySpzZvPALPl4J8AsJ4aQauOGXf7j0rMuvXvzhRnSJGiPNSKwWInGWqO4iqIrmSsszF+fNTgCMKmNwGQEDYES+7aMW5r5OYAuAegAPfCY4ttZx3+IPaw8neiza/0eXEImdVaWzSqdw6WRSzh/gtj91VeLCL6iCL0wlAFUdiWNHFQC+O++TW7/ev9OzixcAmURoARh1gMJBFS5IJKVdFffpwdW3c/9603vAGLQ/9wLNNmQZNRyFCQQE6ZyDDesJCpwCxqQYhQ1IVnbEwd3bUHfgPXY9/xJ1cYqII4RN9UhlKtFU18Tqc/pH7c7umE2mgA5GNWVs5t2tjVunT+iw+6QaqJ00fdrgqZMfWbqCSCK2RpyhAlAtU6eBYcCv/wVQmQJydQBNyXFYtjoJqPq+wgUHmCQgBrChH0MAFN9HAaIIUAcwBFIGqG6vePdPR2bMvbN68ujp+/nqlG4KNPOBm2ZvntG3z0X3rFoLaDa2psIZOEChJVcjQDpajbB9E2ER5BmPQYrnJs8oy+Bo2XdzuTV3YxIALQgHdUSkBj2qiT0fH2sEgLCprjjWAzjjEv7q4Ibfd6rD8KeegaYjp5kKNaoC4gTxk0o4eKmSzgUISxL2dlbiW0tQCOTXag6A5XdKev79A6kU0FinmaSR48caLADQ5YqrCzCeaPgA6369/OUDIZAWMEgJLcWvCPhod8Kt7xLmP+J/WTAGBeFYGOUnaeFePJtg/gMICCFghCKEvycohAiUhFII2NjmAEBdXK6BFxWNwOy7a3/18Z5fbr5gyPcW7Xsf7ZuOGSeBkogLMiygJgGlkEQAEpC85Qi9uRUsrYC6XO4Keu2VaUoVcK4gIUcfLIqap3X5yU5DnKDJZj6w/Invr+69PXvZoB/ct6xxL87Z+wE1mTBqxFJVy0BQTRCw5mzYVBo2QNH8aUBVgiyzGfWaY8E9VCEADAEVBzqFWgu6CHHDcQkOfwyNnFVQBXnQ3qycF0qZzzTfyLhz/o+3O1ReXPvD766sqUH/d98RFUdNBwUQQLqdkWQQ7944+9GRYf3eUG23hOoFqkF3QZDOP8/CxxEIoA5xJLCNIA454FBA1gVkHUVDVcT0ylOb6TW241mXjV3ELKrDMNZyd1GnrtyMWwKgAMyf5k8++u/rPrhy9KS7Fl4ztte1K9ZQG3Oi6VRMOCKZIlKJbLhx/mM70cZkdmc4dvhYZ0SYy8GBEJRCgwKALYPV0lHAApBw789yLz1+Xu3m362ZPX4kGFSI1DcFzlJos4qgQ6V0nfhass04F89L35seOqu6AhJmHcBShFUtid6Vyb2VswwccKEAwAtPDZr01rzNT948BKioEGkIjaMhXD1Ueo5sO9E7OADIdD2LQT0UqnCqeZ/zMGzkrf/Ms3sUvUBaX3GbAxIEgN8+0u/+pS99NPX6sUAqgEQWSBoEmfBw2wHIE2HV0gdaeIenZ1QRW4+kqqamdQ30HDnFlP5FRaQLHu32841LV44feR2Qi4CmCDkyaPN8oEONSVpFJ6WBiBR2SBpxsM55TZQ99VMA7rp3anLxrrrfdJ2yp/cJggEw+57h8/9n8Zxhg64DenTG+R07pm1bA3j/v98+mk3iUCoDiDFOqV4NqrCxtQBgy7j+FIAfjzyn6YpeVbeM6FfzBjDiU4e9eVNvWbV32dJrxtVi38XnJdu8KrFt5uVHNy1fMLKiG44l0mJoAgchnAJx5Me4svEt+sCUeXjj8hEV3YY//PLr+abS2QzAjLtHrZj20Jt9Nh/AkULbRQ+EreYWn5c2zRy7aeuSuYO790MuGRiRhHE0QGQlUWDmpAAYwaz8L2DgpMqhg3+wckUBBFkC8dpjVzatnSLFY+GWx5Nt6Q9c9/TEjbuWzBvS8zLYdNKIoUKdMQDgFCePQh0rYGxO8foSF/3lHUOHX/vDDUsAQPVETbQVDbtDywJH8RzLFT+9+c0tC+Zcc96lQJMN8EnW+1z5TtwigMBBq9IKzVmueA06aPIlo2p/tGkR0Cvwi/dpUxCjv4XO09/UZ3re9nZ3lMxVAWDV47es2rH0d9d+s5YYfGX3LgDQPv0ZAFSREKfIpJSJOIslr0KH3ttv9DfGTPxXP2Jrm4bP93blPmmo01uvmnjphg5/M78jTjRzrJj27d8f275x2t+N6RADwMyhPLkJUSEKAla1Mg1G9Tnu2AX06Desb1syXqDf3JO2uw/qH85owJkD/3rchv737Ti3+Zjbruj/j0/s1580b28ZAP1BWFUJB22fgdYfBj7cw7bfevNUn6VpCIHgI9ezX23vt0c8uqR/OUsAsP2bEp0SACklsj51UmoQAGDU5g5coFjJ400OYTa0B7e56j6jRq27dd6GofnuVk22ZQBShK35lIpIACY4ftoAJGsgsc8U6eJQ31vjEr2vumTljTPX33yyeS0f5ghR5zMwnwIV6h6HTlst1CXgHATqoAJQNXLLn3e4csiAudc9+tK9pZHBCUJsGYAArsSqUtXndmHDafOBI/vC40wiXxCAVgQQF0Vu8TLgukk3Pj3ue794zI+MVcr2otZqowQAEqpKEQPWfQTtPmDCIFu/Z0Z8vAG5hrQmqrqpMULSQGDgnF/cGAOoVdI6dbGN4iaqRoxtEwwBCmGjHAiDoF0Fwvjs2NbF/cIgUJCEAk5V21dQ6upDN3tRUr4z9fsPBJKumfeLu+92ZT7Rok3/w0J9Z/8B1/9oQ2ytwggIGxvNnCGs6gJoPhaQXqH5AkpZ3cJfIi2omIAt48ACCEPg6F6HOIzUSLGSRweqCFDXJGrTgUwYDbw1+93FL07/5zE4MldbBTBlqa4/+KEOqGuInFUI1dcjrALOiioUzmcaWgBSWKhYVIGyLJ6V7LEI1/9QfTlGaCl0oI8bDn478vIwYF0WqokE+30DOHAEGw68v//Ot6d2f6dFHwgTXkrO+nqN07zUVEHGFFomxDEQlUBUAqqYEy4nhkojjoaOBv4SOAa0NIz9LywFMYgYUAdVqFMqitVGzWtMtUOGzDVpvGMrMHkcBvS9tNuNrfoAFQwtkYsCFzuFeNMo5KZFYZcyv2LiWpR3oZqqILXYTxYrS8wXfQQqBI1YMSyd9AuPJAAR4ZF6xF/rhmDMQOC5f9nyyPM/n/ZTAGwRwJAuOG+LAz5pkMBab8tBXt1hCBgBTMIbiSuU3srrNwTo4CvNZYFXNV9hzE/RAMgFQM4CR/YGCBtjDQLHokDytbswhK3KmOD6EcSchxfetXrWDTP9ipXSIoD/XLT/n/YfqutxcOf7UcJEcaJdRkwiUwENTEV1Z6dKZA8fg/NFf1AIdf6kq+qIOFYGApAK56AkTEKUJOLI7+bJdEoDUc3u3Yo4JHqNvmlsu07J7rl6X07M1yapEGutMeMmMlo1d/WE1bNuWOC5/CsBDulp21k/L139wOEFvS7rfP3Hu0MHqiippDgJAnPRFWg8tPbVwc/+/Zj1fvTtBJ759PuBcrrrJaUm/OlHDVToX2K4OB8uU8CssmPtbSu1zP6BZ4dRb1vm26SZeaUzwNYPYrwx+y1g2dUKADXnd+pkGwClU6jAKTVTFZiuF+LgjiWvDFn00I1b81CLzAOnIbv6c+k7L+ua3GE38Eh9FFtF0LlLColqbNu1aFbt+hm378GJb0+L9FnviVul8S8oX5zQ8ivS8S+UtNHamOaUOwKTjQkVmHN7ppAzWLv8iftH/O+aJxvzQ770d9InpTEzde3fzlOdukZ1wnO6uGbgEwUhfGWs5KT0o1d056+3qF5157rZZc3mz17w/5PunaUyZ4vuHPaTLc9/Xub/D61PrC9fCdQYAAAAAElFTkSuQmCC"></div></html>

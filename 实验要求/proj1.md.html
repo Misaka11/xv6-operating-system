@@ -1,0 +1,144 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!-- saved from url=(0032)http://www.xzhu.info/os/proj1.md -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<title></title>
+<link rel="stylesheet" href="./proj1.md_files/mdxzhu.css"> </head>
+<body>
+<a name="Proj-1-ef--bc--9a--e5--b8--a6--e5--8f--82--e6--95--b0--e7--9a--84--e7--b3--bb--e7--bb--9f--e8--b0--83--e7--94--a8--ef--bc--8c--e8--bf--9b--e7--a8--8b--e5--88--87--e6--8d--a2--ef--bc--8c--e5--ad--90--e8--bf--9b--e7--a8--8b--e4--bc--98--e5--85--88--e7--9a--84-fork"></a>
+<h3>Proj 1：带参数的系统调用，进程切换，子进程优先的fork</h3>
+
+<p>拷贝、复制一份<code>proj1-base</code>到当前目录下，改名为<code>proj1-revise</code>，在此基础上修改。请不要在你的proj0的基础上修改，以避免proj0中的错误延续到proj1中。</p>
+
+<a name="L1.--e5--b8--a6--e5--8f--82--e6--95--b0--e7--9a--84--e7--b3--bb--e7--bb--9f--e8--b0--83--e7--94--a8--28-30-25--29-"></a>
+<h4>1. 带参数的系统调用(30%)</h4>
+
+<p>proj0中添加的系统调用不带任何参数，你需要修改系统调用为：</p>
+
+<pre><code>int shutdown(int a);  
+</code></pre>
+
+<p>其中a为传入的参数。同时修改shutdown.c文件，当用户在命令行输入 <code>shutdown 20</code>时，屏幕上打印一行字后退出，打印的字符串为：</p>
+
+<pre><code>Leaving with code 20.
+</code></pre>
+
+<p>发布的源码中已包含<code>shutdown</code>的命令以及原始的内核实现，你只需要修改这个实现即可。</p>
+
+<p>实验要求：</p>
+
+<ul>
+<li>阅读一个带参数的系统调用，如<code>sleep</code>。在该系统调用的内核实现中，内核通过<code>argint</code>获取用户传递的参数，再次跟踪进去，会发现<code>argint</code>调用了<code>fetchint</code>。<code>fetchint</code>检查了用户的地址是否合法，然后返回相应的值。请在实验报告中回答：为何<code>argint</code>推算出的第n个参数（n从0开始）位置是在<code>esp+4+4*n</code>，具体回答，4是什么意思，为什么不是8，不是16？为什么不是<code>esp+4*n</code>?</li>
+</ul>
+
+
+<p>提示：</p>
+
+<blockquote><p>需要寻找一个函数的具体实现在哪个文件中时，可以使用<code>grep</code>命令。例如，你不知道<code>argint</code>在哪个文件中，可以在ssh窗口的命令行中输入<code>grep argint *</code> （意思是：从当前目录下的所有文件中查找字符串<code>argint</code>） 。输出类似如下：</p></blockquote>
+
+<pre><code>alpha@VM-199-186-ubuntu:~/proj0-base$ grep argint *
+defs.h:int             argint(int, int*);
+syscall.c:argint(int n, int *ip)
+syscall.c:  if(argint(n, &amp;i) &lt; 0)
+syscall.c:  if(argint(n, &amp;addr) &lt; 0)
+sysfile.c:  if(argint(n, &amp;fd) &lt; 0)
+sysfile.c:  if(argfd(0, 0, &amp;f) &lt; 0 || argint(2, &amp;n) &lt; 0 || argptr(1, &amp;p, n) &lt; 0)
+sysfile.c:  if(argfd(0, 0, &amp;f) &lt; 0 || argint(2, &amp;n) &lt; 0 || argptr(1, &amp;p, n) &lt; 0)
+sysfile.c:  if(argstr(0, &amp;path) &lt; 0 || argint(1, &amp;omode) &lt; 0)
+sysfile.c:     argint(1, &amp;major) &lt; 0 ||
+sysfile.c:     argint(2, &amp;minor) &lt; 0 ||
+sysfile.c:  if(argstr(0, &amp;path) &lt; 0 || argint(1, (int*)&amp;uargv) &lt; 0){
+sysproc.c:  if(argint(0, &amp;pid) &lt; 0)
+sysproc.c:  if(argint(0, &amp;n) &lt; 0)
+sysproc.c:  if(argint(0, &amp;n) &lt; 0)
+</code></pre>
+
+<blockquote><p>经过简单的排除，会发现函数是在<code>syscall.c</code>中实现的。</p>
+
+<p><code>myproc()-&gt;tf</code>中存储了用户进程在陷入内核前的状态，包括各个寄存器的值，这些值存储在内核空间中，即，<code>myproc()-&gt;tf</code>指向了内核的一块空间，这块空间的组织方式是一个<code>trapframe</code>结构体（通过<code>grep</code>查找这个结构体的定义，了解有哪些域）。
+你可以阅读<a href="https://pdos.csail.mit.edu/6.828/2014/xv6/book-rev8.pdf">xv6-book</a>的Chapter 1和Chapter 3中关于系统调用的部分。
+你可以阅读<a href="https://wiki.osdev.org/Stack">这个材料</a>了解函数调用时用户的栈发生了哪些变化。</p></blockquote>
+
+<a name="L2.--e7--90--86--e8--a7--a3--e8--bf--9b--e7--a8--8b--e5--88--87--e6--8d--a2--ef--bc--88-20-25--ef--bc--89-"></a>
+<h4>2. 理解进程切换（20%）</h4>
+
+<p>两个进程切换时，先把进程1的上下文保存到它的PCB中，然后从进程2的PCB中读入上下文，执行进程2。（上下文指的是各寄存器的值，包括但不限于eax，ebx，ecx，cs，eip，esp，ebp等。）这是上课时讲授的内容，听起来似乎只有1次上下文切换。实际是这样吗？</p>
+
+<p> xv6运行过程中，cpu会在三种栈之间切换：</p>
+
+<ul>
+<li>进程的用户栈，即，进程地址空间的栈区域，该栈区域是在进程创建时操作系统分配的，在fork()函数中调用的copyuvm，隐含分配了这个栈区域；如果进程执行了exec，则在exec函数中会显式分配此栈。每个进程有一个独立的用户栈。</li>
+<li>进程的内核栈，这个栈是fork()中调用的allocproc分配的。每个进程有一个独立的内核栈。</li>
+<li>内核的栈，即，操作系统在启动时，main函数运行的栈。此栈是在执行内核的main函数之前就分配好了，在bootasm.S中有一条语句。</li>
+</ul>
+
+
+<p>使用GDB调试xv6的运行（<a href="http://xzhu.info/os/gdbguide.md">参考步骤</a>），在实验报告中回答以下问题：</p>
+
+<ul>
+<li><p>CPU在执行<code>scheduler()</code>时运行在用户态还是内核态？运行在哪个栈上面？ 以下为提示。</p>
+
+<ul>
+<li>你可以观察cpu在执行scheduler函数时<code>cs</code>寄存器的后两位来区分cpu级别，后两位为00表示在内核态，为11表示在用户态。</li>
+<li>在xv6中，所有栈的默认大小都是4KB，且是页对齐的，即，栈的地址后12位是从0x000到0xfff。所以，如果你发现<code>esp</code>寄存器的值始只改变了后12位，则说明CPU没有更换栈。</li>
+<li>在xv6中，所有进程的虚拟地址<code>0x8000 0000</code>以上部分都留给了内核，所以如果你发现<code>esp</code>的值大于此值，说明栈在内核空间中，并且此时，<code>cs</code>寄存器后两位的值应当为00。</li>
+</ul>
+</li>
+<li><p>当你在命令行敲下<code>shutdown</code>时，系统会创建一个进程执行shutdown.c中的代码，该代码中调用了系统调用<code>void shutdown()</code>，那么，在该进程的执行过程中，在main函数之内、系统调用之前，CPU运行在用户态还是内核态？运行在哪个栈上面？</p></li>
+<li><p>在执行命令<code>shutdown</code>的过程中，当cpu执行到涉及特权指令的函数<code>outw()</code>时，CPU运行在用户态还是内核态？运行在哪个栈上面？</p></li>
+</ul>
+
+
+<p>读proc.c中的scheduler函数，这个函数在选择了进程后，会通过swtch.S中的swtch函数（swtch是用汇编语言写的函数）切换到选中的进程；而用户进程会通过调用proc.c中的sched()函数切回scheduler。</p>
+
+<p>在实验报告中回答：</p>
+
+<ul>
+<li>为何在执行完<code>swtch</code>函数后，cpu没有像普通函数调用一样返回到<code>scheduler</code>函数中？</li>
+</ul>
+
+
+<p>为了回答这个问题，将gdb的断点设置在swtch函数中，具体设置方式为<code>b swtch</code>，当触发断点时，执行<code>bt</code>命令显示当前调用栈，如果显示的不是如下的信息，则继续执行直到触发断点时<code>bt</code>显示的调用栈如下：</p>
+
+<pre><code class="``">  (gdb) bt
+  #0  swtch () at swtch.S:11
+  #1  0x80103ab5 in scheduler () at proc.c:346
+  #2  0x80102e3f in mpmain () at main.c:57
+  #3  0x80102f7f in main () at main.c:37
+</code></pre>
+
+<p>此时，单步跟踪执行，每执行一条指令，观察一次调用栈信息，在某条指令执行后，你会发现调用栈发生了巨大变化，即，在此指令执行前，调用栈信息类似于<code>main()-&gt;mpmain()-&gt;</code>，而执行完这条指令后，gdb不知道调用栈是什么，提示"Backtrace stopped: previous frame inner to this frame (corrupt stack?)“。这条指令与函数无法正常返回密切相关。找出这条指令。回答上面的问题。</p>
+
+<a name="L3.--e5--ad--90--e8--bf--9b--e7--a8--8b--e4--bc--98--e5--85--88--e7--9a--84-fork-ef--bc--88-50-25--ef--bc--89-"></a>
+<h4>3. 子进程优先的fork（50%）</h4>
+
+<p>阅读proc.c中的int fork(void)函数。fork涉及到两个进程，新的进程称为子进程，原始的进程称为父进程。xv6执行完fork后，父进程先运行，然后子进程运行。你需要修改这个行为，让子进程优先运行。</p>
+
+<p>实现以下系统调用，以控制是否启用你的算法。此系统调用已经分配了系统调用号，你只需要在内核中实现即可。</p>
+
+<pre><code>void fork_winner(int winner);
+</code></pre>
+
+<ul>
+<li>若winner=1，表示启用你的算法；若winner=0，表示不启用你的算法。</li>
+<li>默认情况下不启用你的算法。</li>
+<li>如果你的实现是正确的，运行forktest命令后你应当能观察到，设置child为winner时，大多数情况是先打印child后打印parent；设置parent为winner时，大多数情况是先打印parent后打印child。</li>
+<li>不允许修改forktest.c文件（即使编程风格不好，也请不要修改）。</li>
+</ul>
+
+
+<p>请在实验报告中回答以下问题：</p>
+
+<ul>
+<li><p>子进程在诞生后（以其状态标记为runnable为准），scheduler便可选择它运行。在第一次选中它执行时，在swtch的ret指令后，CPU执行的第一条指令是什么，在哪个函数中？这是在哪里设置的？</p></li>
+<li><p>在父进程优先的情况下，偶尔会有子进程先于父进程打印到屏幕的情况出现；在子进程优先的情况下，偶尔也会有父进程先于子进程打印到屏幕的情况。解释可能的原因。</p></li>
+</ul>
+
+
+<a name="L4.--e4--bd--9c--e4--b8--9a--e6--8f--90--e4--ba--a4-"></a>
+<h4>4. 作业提交</h4>
+
+<p>同proj0，在执行<code>make submit</code>后，会生成文件夹<code>submit-proj1</code>，将你的实验报告命名为<code>proj1.pdf</code>或者<code>proj1.html</code>上传。</p>
+
+
+</body><div id="translate-button" style="display: none;"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAABmJLR0QAAAAAAAD5Q7t/AAAACXBIWXMAEgWuABIFrgFpirNTAAAMIUlEQVRo3s1Ze5RV1Xn//b597mMuw/CYEREwRhCVCisian1Q3joQQREhljSKrctXKIlpiHHFB9qoXTYrmiwa2rAqqUgaRFEBQSAIUtKFKChFCM+gCwGFgjAMM3PvOWfvr3/s+2KcQYxD9bvr3Hvufp3v9732/r4DnDL1Yfm/B3+7/lt3NOrXTn3+V4im/NuSpzer0z4vR92+bF4+N417eOGTr2RVb1+l+75sXk6ViqYz4f5Vc362T/Wa51Rr/0O393zwcOrLZi44Beb14lterLz62ze9JhkMfPUVaApgpxoYG7fTryIAAigwpoMfXHlm7+FDVxytQ989f1SkJNZUxrCySpzZvPALPl4J8AsJ4aQauOGXf7j0rMuvXvzhRnSJGiPNSKwWInGWqO4iqIrmSsszF+fNTgCMKmNwGQEDYES+7aMW5r5OYAuAegAPfCY4ttZx3+IPaw8neiza/0eXEImdVaWzSqdw6WRSzh/gtj91VeLCL6iCL0wlAFUdiWNHFQC+O++TW7/ev9OzixcAmURoARh1gMJBFS5IJKVdFffpwdW3c/9603vAGLQ/9wLNNmQZNRyFCQQE6ZyDDesJCpwCxqQYhQ1IVnbEwd3bUHfgPXY9/xJ1cYqII4RN9UhlKtFU18Tqc/pH7c7umE2mgA5GNWVs5t2tjVunT+iw+6QaqJ00fdrgqZMfWbqCSCK2RpyhAlAtU6eBYcCv/wVQmQJydQBNyXFYtjoJqPq+wgUHmCQgBrChH0MAFN9HAaIIUAcwBFIGqG6vePdPR2bMvbN68ujp+/nqlG4KNPOBm2ZvntG3z0X3rFoLaDa2psIZOEChJVcjQDpajbB9E2ER5BmPQYrnJs8oy+Bo2XdzuTV3YxIALQgHdUSkBj2qiT0fH2sEgLCprjjWAzjjEv7q4Ibfd6rD8KeegaYjp5kKNaoC4gTxk0o4eKmSzgUISxL2dlbiW0tQCOTXag6A5XdKev79A6kU0FinmaSR48caLADQ5YqrCzCeaPgA6369/OUDIZAWMEgJLcWvCPhod8Kt7xLmP+J/WTAGBeFYGOUnaeFePJtg/gMICCFghCKEvycohAiUhFII2NjmAEBdXK6BFxWNwOy7a3/18Z5fbr5gyPcW7Xsf7ZuOGSeBkogLMiygJgGlkEQAEpC85Qi9uRUsrYC6XO4Keu2VaUoVcK4gIUcfLIqap3X5yU5DnKDJZj6w/Invr+69PXvZoB/ct6xxL87Z+wE1mTBqxFJVy0BQTRCw5mzYVBo2QNH8aUBVgiyzGfWaY8E9VCEADAEVBzqFWgu6CHHDcQkOfwyNnFVQBXnQ3qycF0qZzzTfyLhz/o+3O1ReXPvD766sqUH/d98RFUdNBwUQQLqdkWQQ7944+9GRYf3eUG23hOoFqkF3QZDOP8/CxxEIoA5xJLCNIA454FBA1gVkHUVDVcT0ylOb6TW241mXjV3ELKrDMNZyd1GnrtyMWwKgAMyf5k8++u/rPrhy9KS7Fl4ztte1K9ZQG3Oi6VRMOCKZIlKJbLhx/mM70cZkdmc4dvhYZ0SYy8GBEJRCgwKALYPV0lHAApBw789yLz1+Xu3m362ZPX4kGFSI1DcFzlJos4qgQ6V0nfhass04F89L35seOqu6AhJmHcBShFUtid6Vyb2VswwccKEAwAtPDZr01rzNT948BKioEGkIjaMhXD1Ueo5sO9E7OADIdD2LQT0UqnCqeZ/zMGzkrf/Ms3sUvUBaX3GbAxIEgN8+0u/+pS99NPX6sUAqgEQWSBoEmfBw2wHIE2HV0gdaeIenZ1QRW4+kqqamdQ30HDnFlP5FRaQLHu32841LV44feR2Qi4CmCDkyaPN8oEONSVpFJ6WBiBR2SBpxsM55TZQ99VMA7rp3anLxrrrfdJ2yp/cJggEw+57h8/9n8Zxhg64DenTG+R07pm1bA3j/v98+mk3iUCoDiDFOqV4NqrCxtQBgy7j+FIAfjzyn6YpeVbeM6FfzBjDiU4e9eVNvWbV32dJrxtVi38XnJdu8KrFt5uVHNy1fMLKiG44l0mJoAgchnAJx5Me4svEt+sCUeXjj8hEV3YY//PLr+abS2QzAjLtHrZj20Jt9Nh/AkULbRQ+EreYWn5c2zRy7aeuSuYO790MuGRiRhHE0QGQlUWDmpAAYwaz8L2DgpMqhg3+wckUBBFkC8dpjVzatnSLFY+GWx5Nt6Q9c9/TEjbuWzBvS8zLYdNKIoUKdMQDgFCePQh0rYGxO8foSF/3lHUOHX/vDDUsAQPVETbQVDbtDywJH8RzLFT+9+c0tC+Zcc96lQJMN8EnW+1z5TtwigMBBq9IKzVmueA06aPIlo2p/tGkR0Cvwi/dpUxCjv4XO09/UZ3re9nZ3lMxVAWDV47es2rH0d9d+s5YYfGX3LgDQPv0ZAFSREKfIpJSJOIslr0KH3ttv9DfGTPxXP2Jrm4bP93blPmmo01uvmnjphg5/M78jTjRzrJj27d8f275x2t+N6RADwMyhPLkJUSEKAla1Mg1G9Tnu2AX06Desb1syXqDf3JO2uw/qH85owJkD/3rchv737Ti3+Zjbruj/j0/s1580b28ZAP1BWFUJB22fgdYfBj7cw7bfevNUn6VpCIHgI9ezX23vt0c8uqR/OUsAsP2bEp0SACklsj51UmoQAGDU5g5coFjJ400OYTa0B7e56j6jRq27dd6GofnuVk22ZQBShK35lIpIACY4ftoAJGsgsc8U6eJQ31vjEr2vumTljTPX33yyeS0f5ghR5zMwnwIV6h6HTlst1CXgHATqoAJQNXLLn3e4csiAudc9+tK9pZHBCUJsGYAArsSqUtXndmHDafOBI/vC40wiXxCAVgQQF0Vu8TLgukk3Pj3ue794zI+MVcr2otZqowQAEqpKEQPWfQTtPmDCIFu/Z0Z8vAG5hrQmqrqpMULSQGDgnF/cGAOoVdI6dbGN4iaqRoxtEwwBCmGjHAiDoF0Fwvjs2NbF/cIgUJCEAk5V21dQ6upDN3tRUr4z9fsPBJKumfeLu+92ZT7Rok3/w0J9Z/8B1/9oQ2ytwggIGxvNnCGs6gJoPhaQXqH5AkpZ3cJfIi2omIAt48ACCEPg6F6HOIzUSLGSRweqCFDXJGrTgUwYDbw1+93FL07/5zE4MldbBTBlqa4/+KEOqGuInFUI1dcjrALOiioUzmcaWgBSWKhYVIGyLJ6V7LEI1/9QfTlGaCl0oI8bDn478vIwYF0WqokE+30DOHAEGw68v//Ot6d2f6dFHwgTXkrO+nqN07zUVEHGFFomxDEQlUBUAqqYEy4nhkojjoaOBv4SOAa0NIz9LywFMYgYUAdVqFMqitVGzWtMtUOGzDVpvGMrMHkcBvS9tNuNrfoAFQwtkYsCFzuFeNMo5KZFYZcyv2LiWpR3oZqqILXYTxYrS8wXfQQqBI1YMSyd9AuPJAAR4ZF6xF/rhmDMQOC5f9nyyPM/n/ZTAGwRwJAuOG+LAz5pkMBab8tBXt1hCBgBTMIbiSuU3srrNwTo4CvNZYFXNV9hzE/RAMgFQM4CR/YGCBtjDQLHokDytbswhK3KmOD6EcSchxfetXrWDTP9ipXSIoD/XLT/n/YfqutxcOf7UcJEcaJdRkwiUwENTEV1Z6dKZA8fg/NFf1AIdf6kq+qIOFYGApAK56AkTEKUJOLI7+bJdEoDUc3u3Yo4JHqNvmlsu07J7rl6X07M1yapEGutMeMmMlo1d/WE1bNuWOC5/CsBDulp21k/L139wOEFvS7rfP3Hu0MHqiippDgJAnPRFWg8tPbVwc/+/Zj1fvTtBJ759PuBcrrrJaUm/OlHDVToX2K4OB8uU8CssmPtbSu1zP6BZ4dRb1vm26SZeaUzwNYPYrwx+y1g2dUKADXnd+pkGwClU6jAKTVTFZiuF+LgjiWvDFn00I1b81CLzAOnIbv6c+k7L+ua3GE38Eh9FFtF0LlLColqbNu1aFbt+hm378GJb0+L9FnviVul8S8oX5zQ8ivS8S+UtNHamOaUOwKTjQkVmHN7ppAzWLv8iftH/O+aJxvzQ770d9InpTEzde3fzlOdukZ1wnO6uGbgEwUhfGWs5KT0o1d056+3qF5157rZZc3mz17w/5PunaUyZ4vuHPaTLc9/Xub/D61PrC9fCdQYAAAAAElFTkSuQmCC"></div></html>

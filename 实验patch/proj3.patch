@@ -1,0 +1,412 @@
+diff -uNr /home/proj3-base/defs.h ./defs.h
+--- /home/proj3-base/defs.h	2019-04-19 09:50:43.977802387 +0800
++++ ./defs.h	2019-05-03 14:34:14.000000000 +0800
+@@ -9,6 +9,7 @@
+ struct sleeplock;
+ struct stat;
+ struct superblock;
++struct semaphore;
+ 
+ // bio.c
+ void            binit(void);
+@@ -121,6 +122,9 @@
+ void            wakeup(void*);
+ void            yield(void);
+ 
++void sinit(void);
++void mbinit(void);
++
+ // swtch.S
+ void            swtch(struct context**, struct context*);
+ 
+diff -uNr /home/proj3-base/main.c ./main.c
+--- /home/proj3-base/main.c	2019-04-19 09:50:43.977802387 +0800
++++ ./main.c	2019-05-03 14:20:37.000000000 +0800
+@@ -34,6 +34,8 @@
+   startothers();   // start other processors
+   kinit2(P2V(4*1024*1024), P2V(PHYSTOP)); // must come after startothers()
+   userinit();      // first user process
++  sinit();         // semaphore init
++  mbinit();         // mailbox init
+   mpmain();        // finish this processor's setup
+ }
+ 
+diff -uNr /home/proj3-base/Makefile ./Makefile
+--- /home/proj3-base/Makefile	2019-04-24 14:10:22.637333355 +0800
++++ ./Makefile	2019-04-28 19:42:52.000000000 +0800
+@@ -167,6 +167,8 @@
+ 	_wc\
+ 	_zombie\
+ 	_shutdown\
++	_semtest\
++	_msgtest\
+ 
+ fs.img: mkfs  $(UPROGS)
+ 	./mkfs fs.img  $(UPROGS)
+diff -uNr /home/proj3-base/proc.c ./proc.c
+--- /home/proj3-base/proc.c	2019-04-19 09:50:43.977802387 +0800
++++ ./proc.c	2019-05-06 21:12:04.000000000 +0800
+@@ -532,3 +532,306 @@
+     cprintf("\n");
+   }
+ }
++//semaphore part
++#define SEMNUM  100  // the number of semaphore
++
++struct semaphore{
++  char used;  // if the semaphore have been used
++  int v;  // the value of semaphore
++  int h,t;  // the head and tail of waitqueue
++  struct proc *waitqueue[NPROC+1];  //process waitqueue
++  struct spinlock lock; // lock to protect semaphore
++};
++
++struct{
++  struct semaphore s[SEMNUM]; //the semaphores
++  int sresource;  // semaphore resource 
++  struct spinlock srlock; // the lock to protect allocation of sresource
++}stable;
++
++void sinit(void){
++  int i;
++  for(i=0;i<SEMNUM;i++){
++    stable.s[i].used = 0;
++    initlock(&stable.s[i].lock,"semlock");
++  }
++  stable.sresource = SEMNUM;
++  initlock(&stable.srlock,"srlock");  
++}
++int alloc_sem (int v){
++  if(v<0) return -1;
++  //test sresource is enough
++  acquire(&stable.srlock);
++  if(stable.sresource <= 0){
++    release(&stable.srlock);
++    return -1;
++  }
++  stable.sresource --;
++  release(&stable.srlock);
++
++  int i;
++  for(i=0;i<SEMNUM;i++){
++    acquire(&stable.s[i].lock);
++    if(!stable.s[i].used){
++      stable.s[i].used = 1;
++      stable.s[i].h = 0;
++      stable.s[i].t = 0;
++      stable.s[i].v = v;
++      release(&stable.s[i].lock);
++      return i;
++    }
++    release(&stable.s[i].lock);
++  }
++
++  return -1;
++}
++int wait_sem(int i){
++  if(i>=SEMNUM || i<0) return -1;
++
++  struct semaphore *sem = &stable.s[i];
++  acquire(&sem->lock);
++  if(sem->used){
++    sem->v--;
++    if(sem->v < 0){
++      sem->waitqueue[sem->t] = myproc();
++      sem->t = (sem->t + 1 ) % (NPROC+1);
++      sleep(myproc(),&sem->lock);
++    }
++    release(&sem->lock);
++    return 1;
++  }
++  release(&stable.s[i].lock);
++
++  return -1;
++}
++int signal_sem(int i){
++  if(i>=SEMNUM || i<0) return -1;
++
++  struct semaphore *sem = &stable.s[i];
++  acquire(&sem->lock);
++  if(sem->used){
++    sem->v++;
++    if(sem->v <= 0){
++      wakeup(sem->waitqueue[sem->h]);
++      sem->h = (sem->h + 1) % (NPROC+1);
++    }
++    release(&sem->lock);
++    return 1;
++  }
++  release(&sem->lock);
++
++  return -1;
++}
++int dealloc_sem(int i){
++  if(i>=SEMNUM || i<0) return -1;
++  
++  acquire(&stable.s[i].lock);
++  if(stable.s[i].used){
++    stable.s[i].used = 0;
++    acquire(&ptable.lock);
++    int j;
++    for(j=stable.s[i].h;j!=stable.s[i].t;j=(j+1)%(NPROC+1)){
++      struct proc *p = stable.s[i].waitqueue[j];
++      /*p->killed = 1;
++      // Wake process from sleep if necessary.
++      if(p->state == SLEEPING)
++        p->state = RUNNABLE;*/
++      kfree(p->kstack);
++      p->kstack = 0;
++      freevm(p->pgdir);
++      p->pid = 0;
++      p->parent = 0;
++      p->name[0] = 0;
++      p->killed = 0;
++      p->state = UNUSED;
++    }
++    release(&ptable.lock);
++    release(&stable.s[i].lock);
++
++    acquire(&stable.srlock);
++    stable.sresource++;
++    release(&stable.srlock);
++    return 1;
++  }
++  release(&stable.s[i].lock);
++
++  return -1;
++}
++int sys_alloc_sem(void){
++  int v;
++  if(argint(0, &v) < 0)
++    return -1;
++  return alloc_sem(v);
++}
++int sys_wait_sem(void){
++  int i;
++  if(argint(0, &i) < 0)
++    return -1;
++  return wait_sem(i);
++}
++int sys_signal_sem(void){
++  int i;
++  if(argint(0, &i) < 0)
++    return -1;
++  return signal_sem(i);
++}
++int sys_dealloc_sem(void){
++  int i;
++  if(argint(0, &i) < 0)
++    return -1;
++  return dealloc_sem(i);
++}
++
++//msg part
++#define MSGNUM NPROC
++
++struct message{
++  int type; //-1:unused;0:send;1:receive;2:recycle
++  int from_pid; //who send data
++  int to_pid; //who receive data
++  int sem_id; //semaphore id
++  int da,db,dc; //data a,b,c
++};
++
++struct{
++  struct message m[MSGNUM];
++  struct spinlock mlock;
++}mtable;
++
++
++void mbinit(void){
++  int i;
++  initlock(&mtable.mlock,"mlock");
++  for(i=0;i<MSGNUM;i++){
++    mtable.m[i].type = -1;
++  }
++}
++int msg_send (int pid, int a, int b, int c){
++  //test pid is exist
++  int flag = 0;
++  acquire(&ptable.lock);
++  struct proc *p;
++  for(p=ptable.proc;p<&ptable.proc[NPROC];p++){
++    if(p->pid == pid){
++      flag = 1;
++      break;
++    }
++  }
++  release(&ptable.lock);
++  if(!flag) return -1;
++  
++  acquire(&mtable.mlock);
++  // first receive
++  int j;
++  for(j=0;j<MSGNUM;j++){
++    if(mtable.m[j].type == 1 && mtable.m[j].to_pid == pid){
++      mtable.m[j].type = 0;
++      mtable.m[j].from_pid = myproc()->pid;
++      mtable.m[j].da = a;
++      mtable.m[j].db = b;
++      mtable.m[j].dc = c;
++      signal_sem(mtable.m[j].sem_id);
++      release(&mtable.mlock);
++      return 1;
++    }
++  }
++  // send 'send' msg into box
++  int i;
++  for(i=0;i<MSGNUM;i++){
++    if(mtable.m[i].type == -1){
++      mtable.m[i].sem_id = alloc_sem(0);
++      //system resource is not enough
++      if(mtable.m[i].sem_id == -1){
++        release(&mtable.mlock);
++        return -1;
++      }
++      mtable.m[i].type = 0;
++      mtable.m[i].from_pid = myproc()->pid;
++      mtable.m[i].to_pid = pid;
++      mtable.m[i].da = a;
++      mtable.m[i].db = b;
++      mtable.m[i].dc = c;
++      break;
++    }
++  }
++  release(&mtable.mlock);
++  // wait; first send
++  wait_sem(mtable.m[i].sem_id);
++
++  //delete my msg
++  acquire(&mtable.mlock);
++  mtable.m[i].type = -1;
++  dealloc_sem(mtable.m[i].sem_id);
++  release(&mtable.mlock);
++  
++  return 1;
++}
++
++int msg_receive(int *a, int *b, int *c){
++  int from_pid = -1;
++  acquire(&mtable.mlock);
++  // if first send
++  int j;
++  for(j=0;j<MSGNUM;j++){
++    if(mtable.m[j].type == 0 && mtable.m[j].to_pid == myproc()->pid){
++      *a = mtable.m[j].da;
++      *b = mtable.m[j].db;
++      *c = mtable.m[j].dc;
++      from_pid = mtable.m[j].from_pid;
++      signal_sem(mtable.m[j].sem_id);
++      mtable.m[j].type = 2;
++      release(&mtable.mlock);
++      return from_pid;
++    }
++  }
++  // send 'receive' msg into box
++  int i;
++  for(i=0;i<MSGNUM;i++){
++    if(mtable.m[i].type == -1){
++      //system resource is not enough
++      mtable.m[i].sem_id = alloc_sem(0);
++      if(mtable.m[i].sem_id == -1){
++        release(&mtable.mlock);
++        return -1;
++      }
++      mtable.m[i].type = 1;
++      mtable.m[i].to_pid = myproc()->pid;
++      break;
++    }
++  }
++  release(&mtable.mlock);
++  // wait, first receive
++  wait_sem(mtable.m[i].sem_id);
++
++  // receive msg
++  acquire(&mtable.mlock);
++  *a = mtable.m[i].da;
++  *b = mtable.m[i].db;
++  *c = mtable.m[i].dc;
++  from_pid = mtable.m[i].from_pid;
++  //delete msg
++  mtable.m[i].type = -1;
++  dealloc_sem(mtable.m[i].sem_id);
++  release(&mtable.mlock);
++  return from_pid;
++}
++
++int sys_msg_send(void){
++  int pid,a,b,c;
++  if(argint(0, &pid) < 0 || 
++    argint(1, &a) < 0 || 
++    argint(2, &b) < 0 || 
++    argint(3, &c) < 0)
++    return -1;
++  return msg_send(pid,a,b,c);
++}
++
++int sys_msg_receive(void){
++  int *a,*b,*c;
++  if(argptr(0,(char**)&a,sizeof(int))<0 || 
++    argptr(1,(char**)&b,sizeof(int))<0 || 
++    argptr(2,(char**)&c,sizeof(int))<0)
++    return -1;
++  return msg_receive(a,b,c);
++}
++
+diff -uNr /home/proj3-base/syscall.c ./syscall.c
+--- /home/proj3-base/syscall.c	2019-04-19 09:50:43.977802387 +0800
++++ ./syscall.c	2019-04-29 22:06:40.000000000 +0800
+@@ -104,6 +104,12 @@
+ extern int sys_write(void);
+ extern int sys_uptime(void);
+ extern int sys_shutdown(void);
++extern int sys_alloc_sem(void);
++extern int sys_wait_sem(void);
++extern int sys_signal_sem(void);
++extern int sys_dealloc_sem(void);
++extern int sys_msg_send(void);
++extern int sys_msg_receive(void);
+ 
+ static int (*syscalls[])(void) = {
+ [SYS_fork]    sys_fork,
+@@ -128,6 +134,12 @@
+ [SYS_mkdir]   sys_mkdir,
+ [SYS_close]   sys_close,
+ [SYS_shutdown] sys_shutdown,
++[SYS_alloc_sem] sys_alloc_sem,
++[SYS_wait_sem] sys_wait_sem,
++[SYS_signal_sem] sys_signal_sem,
++[SYS_dealloc_sem] sys_dealloc_sem,
++[SYS_msg_send] sys_msg_send,
++[SYS_msg_receive] sys_msg_receive,
+ };
+ 
+ void
+diff -uNr /home/proj3-base/syscall.h ./syscall.h
+--- /home/proj3-base/syscall.h	2019-04-19 09:50:43.977802387 +0800
++++ ./syscall.h	2019-04-28 19:50:44.000000000 +0800
+@@ -21,3 +21,9 @@
+ #define SYS_mkdir  20
+ #define SYS_close  21
+ #define SYS_shutdown 22
++#define SYS_alloc_sem 23
++#define SYS_wait_sem 24
++#define SYS_signal_sem 25
++#define SYS_dealloc_sem 26
++#define SYS_msg_send 27
++#define SYS_msg_receive 28
+\ No newline at end of file
+diff -uNr /home/proj3-base/usys.S ./usys.S
+--- /home/proj3-base/usys.S	2019-04-19 09:50:43.981802398 +0800
++++ ./usys.S	2019-04-28 20:02:21.000000000 +0800
+@@ -30,3 +30,9 @@
+ SYSCALL(sleep)
+ SYSCALL(uptime)
+ SYSCALL(shutdown)
++SYSCALL(alloc_sem)
++SYSCALL(wait_sem)
++SYSCALL(signal_sem)
++SYSCALL(dealloc_sem)
++SYSCALL(msg_send)
++SYSCALL(msg_receive)
+\ No newline at end of file

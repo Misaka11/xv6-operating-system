@@ -1,0 +1,308 @@
+diff -uNr /home/proj5-base/console.c ./console.c
+--- /home/proj5-base/console.c	2019-05-22 15:13:54.890597482 +0800
++++ ./console.c	2019-06-04 12:04:54.000000000 +0800
+@@ -185,7 +185,7 @@
+   uint w;  // Write index
+   uint e;  // Edit index
+ } input;
+-
++uint *pointr = &input.r;
+ #define C(x)  ((x)-'@')  // Control-x
+ 
+ void
+@@ -197,7 +197,7 @@
+   while((c = getc()) >= 0){
+     switch(c){
+     case C('P'):  // Process listing.
+-      // procdump() locks cons.lock indirectly; invoke later
++      //procdump(); //locks cons.lock indirectly; invoke later
+       doprocdump = 1;
+       break;
+     case C('U'):  // Kill line.
+@@ -213,6 +213,16 @@
+         consputc(BACKSPACE);
+       }
+       break;
++    case C('C'):  //add Ctrl + C kill process
++      consputc('^');
++      consputc('C');
++      consputc('\n');
++      if(CtrlC() == 2){
++        input.buf[input.e++ % INPUT_BUF] = '\n';
++        input.w = input.e;
++        wakeup(&input.r);
++      }
++      break;
+     default:
+       if(c != 0 && input.e-input.r < INPUT_BUF){
+         c = (c == '\r') ? '\n' : c;
+diff -uNr /home/proj5-base/defs.h ./defs.h
+--- /home/proj5-base/defs.h	2019-05-22 15:13:54.890597482 +0800
++++ ./defs.h	2019-06-04 09:34:42.000000000 +0800
+@@ -52,6 +52,7 @@
+ int             readi(struct inode*, char*, uint, uint);
+ void            stati(struct inode*, struct stat*);
+ int             writei(struct inode*, char*, uint, uint);
++void            filecheck(void);
+ 
+ // ide.c
+ void            ideinit(void);
+@@ -120,6 +121,7 @@
+ int             wait(void);
+ void            wakeup(void*);
+ void            yield(void);
++int             CtrlC(void);
+ 
+ // swtch.S
+ void            swtch(struct context**, struct context*);
+diff -uNr /home/proj5-base/fs.c ./fs.c
+--- /home/proj5-base/fs.c	2019-05-22 15:13:54.894597359 +0800
++++ ./fs.c	2019-06-05 20:32:36.000000000 +0800
+@@ -20,6 +20,7 @@
+ #include "fs.h"
+ #include "buf.h"
+ #include "file.h"
++#include "x86.h"
+ 
+ #define min(a, b) ((a) < (b) ? (a) : (b))
+ static void itrunc(struct inode*);
+@@ -669,3 +670,193 @@
+ {
+   return namex(path, 1, name);
+ }
++
++//PAGEBREAK
++// filecheck
++
++char *dinodestore[4];
++#define dinodes_per_page 64
++
++void
++waitdisk(void)
++{
++  // Wait for disk ready.
++  while((inb(0x1F7) & 0xC0) != 0x40)
++    ;
++}
++
++void
++readsectdev(void *dst, uint offset)
++{
++  // Issue command.
++  waitdisk();
++  outb(0x1F2, 1);   // count = 1
++  outb(0x1F3, offset);
++  outb(0x1F4, offset >> 8);
++  outb(0x1F5, offset >> 16);
++//  outb(0x1F6, (offset >> 24) | 0xF0);
++  outb(0x1f6, 0xe0 | (1<<4) | ((offset>>24)&0x0f));
++  outb(0x1F7, 0x20);  // cmd 0x20 - read sectors
++
++  // Read data.
++  waitdisk();
++  insl(0x1F0, dst, BSIZE/4);
++}
++
++void
++readsegdev(uchar* pa, uint count, uint offset)
++{
++  uchar* epa;
++  epa = pa + count;
++  pa -= offset % BSIZE;
++  offset = (offset / BSIZE) + 1;
++  for(; pa < epa; pa += BSIZE, offset++)
++    readsectdev(pa, offset);
++}
++
++void
++writesectdev(void *dst, uint offset)
++{
++  // Issue command.
++  waitdisk();
++  outb(0x1F2, 1);   // count = 1
++  outb(0x1F3, offset);
++  outb(0x1F4, offset >> 8);
++  outb(0x1F5, offset >> 16);
++//  outb(0x1F6, (offset >> 24) | 0xF0);
++  outb(0x1f6, 0xe0 | (1<<4) | ((offset>>24)&0x0f));
++  outb(0x1F7, 0x30);  // cmd 0x30 - write sectors
++
++  // Write data.
++  waitdisk();
++  outsl(0x1f0, dst, BSIZE/4);
++}
++
++void
++writesegdev(uchar* pa, uint count, uint offset)
++{
++  uchar* epa;
++  epa = pa + count;
++  pa -= offset % BSIZE;
++  offset = (offset / BSIZE) + 1;
++  for(; pa < epa; pa += BSIZE, offset++)
++    writesectdev(pa, offset);
++}
++
++void getReference(int i)
++{
++  int j,k;
++  int dirsize = sizeof(struct dirent);
++  struct dinode *checkinode = (struct dinode *) (dinodestore[i/ dinodes_per_page ] + i % dinodes_per_page * sizeof(struct dinode)); 
++
++  if(checkinode->type != 1 && checkinode->type != 2 && checkinode->type != 3)
++  {
++    return;
++  }
++  checkinode->nlink++;
++  if(checkinode->type == 2 || checkinode->type == 3)
++  {
++    return;
++  }
++  if(checkinode->type == 1)
++  {
++    uchar* data = (uchar*)kalloc();
++    for(j = 0 ; j <NDIRECT ; j++)
++    {
++       if(checkinode->addrs[j])
++       {
++         
++         readsectdev((void *)data, checkinode->addrs[j]); 
++         for(k = 2*dirsize; k<BSIZE;k+=dirsize)
++         {
++           struct dirent *de = (struct dirent*)(data + k);
++           if(de->inum!=i)
++            getReference(de->inum);
++           
++         }
++       }
++    }
++    kfree((char*) data);
++  }
++}
++
++void filecheck()
++{
++  cprintf("----------------------------------\n Running fsck ...\n");
++  int inodesnum = 0,blocksnum = 0;
++  int fixed = 0;
++  int i , j;
++  int bi,m,num;
++  struct superblock *sb = (struct superblock* ) kalloc();
++  readsectdev((uchar *) sb, 1);
++  int ninodes = sb->ninodes;
++  int bitstart = sb->bmapstart;
++  int inodestart = sb->inodestart;
++  kfree((char *) sb);
++  
++  for (i = 0; i < 4; i++)
++  {
++		dinodestore[i] = kalloc();
++		for (j = 0; j < PGSIZE; j += BSIZE)
++		{
++			readsegdev((uchar *) (dinodestore[i] + j), BSIZE, BSIZE*(inodestart - 1) + i * PGSIZE + j);
++		}
++	}
++	
++	for (i = 0; i < ninodes; i++)	
++	{
++	  struct dinode *checkinode = (struct dinode *) (dinodestore[i / dinodes_per_page] + i % dinodes_per_page * sizeof(struct dinode));
++	  checkinode->nlink = 0;
++	}
++	
++	getReference(1);
++  uchar* bitmap = (uchar*)kalloc();
++  readsectdev(bitmap,bitstart);
++	for (i = 0; i < ninodes; i++){
++		 struct dinode *checkinode = (struct dinode *) (dinodestore[i / dinodes_per_page] + i % dinodes_per_page * sizeof(struct dinode));
++		if (checkinode->nlink == 0)
++		{
++			if (checkinode->type != 0)
++			{
++  			cprintf("fsck: inode %d is allocated but is not referenced by dir! Fixing ... ", i);
++  			fixed = 1;
++  			inodesnum++;
++  			checkinode->type = 0;
++  			checkinode->size = 0;
++  			for(num = 0; num < NDIRECT; num++)
++  			{
++          if(checkinode->addrs[num])
++          {
++            bi = checkinode->addrs[num] % BPB;
++            m = 1 << (bi % 8);
++            bitmap[bi/8] &= ~m;;
++            checkinode->addrs[num] = 0;
++            blocksnum++;
++          }
++        }
++        cprintf("done\n");
++			}
++		}
++	}
++
++	for (i = 0; i < 4; i++)
++	{
++		for (j = 0; j < PGSIZE ; j += BSIZE)
++		{
++			writesegdev((uchar *) (dinodestore[i] + j), BSIZE, BSIZE*(inodestart - 1) + i * PGSIZE + j);
++		}
++		kfree(dinodestore[i]);
++	}
++
++	if (fixed)
++	{
++	  writesectdev(bitmap,bitstart);
++		cprintf("fsck completed. Fixed %d inodes and freed %d disk blocks.\n", inodesnum, blocksnum);
++	}
++	else
++	{
++		cprintf("fsck: no problem found.\n");
++	}
++	kfree((char*)bitmap);
++	cprintf("----------------------------------\n");
++}
+\ No newline at end of file
+diff -uNr /home/proj5-base/main.c ./main.c
+--- /home/proj5-base/main.c	2019-05-22 15:13:54.894597359 +0800
++++ ./main.c	2019-06-04 09:13:02.000000000 +0800
+@@ -54,6 +54,7 @@
+   cprintf("cpu%d: starting %d\n", cpuid(), cpuid());
+   idtinit();       // load idt register
+   xchg(&(mycpu()->started), 1); // tell startothers() we're up
++  filecheck();
+   scheduler();     // start running processes
+ }
+ 
+diff -uNr /home/proj5-base/proc.c ./proc.c
+--- /home/proj5-base/proc.c	2019-05-22 15:13:54.894597359 +0800
++++ ./proc.c	2019-05-27 22:07:18.000000000 +0800
+@@ -532,3 +532,29 @@
+     cprintf("\n");
+   }
+ }
++
++// return 1 kill present process
++// return 2  "sh" or kill process waiting for input
++int
++CtrlC(void){
++  struct proc *p;
++  extern uint *pointr;
++  if((p = myproc()) != 0){
++    p->killed = 1;
++    return 1;
++  }
++  acquire(&ptable.lock);
++  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
++    if(strncmp(p->name,"sh",2) == 0){
++      //p->state = RUNNABLE;
++      continue;
++    }
++    if(p->state == SLEEPING && p->chan == pointr){
++      p->state = RUNNABLE;
++      p->killed = 1;
++      break;
++    }
++  }
++  release(&ptable.lock);
++  return 2;
++}
+\ No newline at end of file

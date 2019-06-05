@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>石一泽xv6gdb.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: "Segoe WPC", "Segoe UI", "SFUIText-Light", "HelveticaNeue-Light", sans-serif, "Droid Sans Fallback";
+	font-size: 14px;
+	padding: 0 12px;
+	line-height: 22px;
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	color: #4080D0;
+	text-decoration: none;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+h1 code,
+h2 code,
+h3 code,
+h4 code,
+h5 code,
+h6 code {
+	font-size: inherit;
+	line-height: auto;
+}
+
+a:hover {
+	color: #4080D0;
+	text-decoration: underline;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left: 5px solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 14px;
+	line-height: 19px;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+.mac code {
+	font-size: 12px;
+	line-height: 18px;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+/** Theming */
+
+.vscode-light,
+.vscode-light pre code {
+	color: rgb(30, 30, 30);
+}
+
+.vscode-dark,
+.vscode-dark pre code {
+	color: #DDD;
+}
+
+.vscode-high-contrast,
+.vscode-high-contrast pre code {
+	color: white;
+}
+
+.vscode-light code {
+	color: #A31515;
+}
+
+.vscode-dark code {
+	color: #D7BA7D;
+}
+
+.vscode-light pre:not(.hljs),
+.vscode-light code > div {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre:not(.hljs),
+.vscode-dark code > div {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre:not(.hljs),
+.vscode-high-contrast code > div {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+.vscode-light blockquote,
+.vscode-dark blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.vscode-high-contrast blockquote {
+	background: transparent;
+	border-color: #fff;
+}
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family:  "Meiryo", "Segoe WPC", "Segoe UI", "SFUIText-Light", "HelveticaNeue-Light", sans-serif, "Droid Sans Fallback";
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+<link rel="stylesheet" href="file:///i%3A/11/chengshe/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/markdown.css" type="text/css">
+</head>
+<body>
+<h1 id="xv6%E8%B0%83%E8%AF%95">xv6调试</h1>
+<h2 id="1%E5%90%AF%E5%8A%A8%E8%B0%83%E8%AF%95%E7%8E%AF%E5%A2%83">1.启动调试环境</h2>
+<p>假如你写好了一个xv6操作系统，放在~/xv6revise目录下。那么，首先在命令行下不带任何参数执行cd进入你默认的用户目录。在此目录下新建一个.gdbinit文件，里面就一行字 add-auto-load-safe-path ~/xv6revise/.gdbinit 这句话的意思是，将xv6revise目录下的.gdbinit加入safe path。如果你没做这件事件，在做后面步骤时，命令行会出错，提示你这样做。</p>
+<p>之后，在命令行通过cd命令进入你的xv6revise目录，执行</p>
+<pre class="hljs"><code><div>$ make qemu-gdb
+</div></code></pre>
+<p>此时，qemu已经启动，你的命令行窗口被挂起，这是因为在等待客户端发命令了。</p>
+<p>此时打开另外一个命令行窗口ssh登陆，进入到xv6revise目录下，输入 $gdb 如果你看到了类似如下的提示，说明你成功了</p>
+<pre class="hljs"><code><div>The target architecture is assumed to be i8086
+[f000:fff0]    0xffff0: ljmp   $0xf000,$0xe05b
+0x0000fff0 in ?? ()
++ symbol-file kernel
+(gdb)
+</div></code></pre>
+<p>其中最后一行的(gdb)是命令行提示符，你可以在后面输入命令。你将可以在这个命令行里操控第一个终端挂起的xv6了。</p>
+<h2 id="2%E8%B0%83%E8%AF%95xv6">2.调试xv6</h2>
+<ol>
+<li>在main函数出打断点，确定内核空间的栈地址，可得内核空间的栈地址是0x8010b000~0x8010bfff</li>
+</ol>
+<pre class="hljs"><code><div>(gdb) b main
+Breakpoint 1 at 0x80102e60: file main.c, line 19.
+(gdb) c
+Continuing.
+The target architecture is assumed to be i386
+=&gt; 0x80102e60 &lt;main&gt;:   lea    0x4(%esp),%ecx
+
+Breakpoint 1, main () at main.c:19
+19      {
+(gdb) info reg
+eax            0x80102e60       -2146423200
+ecx            0x0      0
+edx            0x1f0    496
+ebx            0x10074  65652
+esp            0x8010b5d0       0x8010b5d0
+ebp            0x7bf8   0x7bf8
+esi            0x10074  65652
+edi            0x0      0
+eip            0x80102e60       0x80102e60 &lt;main&gt;
+eflags         0x86     [ PF SF ]
+cs             0x8      8
+ss             0x10     16
+</div></code></pre>
+<ol start="2">
+<li>在scheduler()打断点，运行到断点并单步执行一步，查看寄存器的值</li>
+</ol>
+<pre class="hljs"><code><div>(gdb) b scheduler
+Breakpoint 1 at 0x80103a40: file proc.c, line 324.
+(gdb) c
+Continuing.
+The target architecture is assumed to be i386
+=&gt; 0x80103a40 &lt;scheduler&gt;:      push   %ebp
+
+Breakpoint 1, scheduler () at proc.c:324
+324     {
+(gdb) si
+=&gt; 0x80103a41 &lt;scheduler+1&gt;:    mov    %esp,%ebp
+0x80103a41      324     {
+(gdb) gdb reg
+Undefined command: &quot;gdb&quot;.  Try &quot;help&quot;.
+(gdb) info reg
+eax            0x0      0
+ecx            0x1      1
+edx            0x80112780       -2146359424
+ebx            0x0      0
+esp            0x8010b578       0x8010b578 &lt;stack+4024&gt;
+ebp            0x8010b598       0x8010b598 &lt;stack+4056&gt;
+esi            0x10074  65652
+edi            0x0      0
+eip            0x80103a41       0x80103a41 &lt;scheduler+1&gt;
+eflags         0x82     [ SF ]
+cs             0x8      8
+ss             0x10     16
+ds             0x10     16
+es             0x10     16
+fs             0x0      0
+gs             0x0      0
+</div></code></pre>
+<p>%cs=8，后两位为00表示内核态，%esp=0x8010b578,是内核空间的栈地址。</p>
+<ol start="3">
+<li>shutdown函数在系统调用前的栈的值为</li>
+</ol>
+<pre class="hljs"><code><div>(gdb) info reg
+eax            0x5b     91
+ecx            0x710    1808
+edx            0x0      0
+ebx            0xbfa8   49064
+esp            0x2fc0   0x2fc0
+ebp            0x2fd8   0x2fd8
+esi            0x0      0
+edi            0x0      0
+eip            0x3f     0x3f
+eflags         0x212    [ AF IF ]
+cs             0x1b     27
+ss             0x23     35
+ds             0x23     35
+es             0x23     35
+fs             0x0      0
+gs             0x0      0
+</div></code></pre>
+<p>%cs=27，后两位为11，在用户态，%esp=0x2fc0,是进程的用户栈。</p>
+<ol start="4">
+<li>shutdown在进入系统调用后的状态</li>
+</ol>
+<pre class="hljs"><code><div>(gdb)
+=&gt; 0x337:       int    $0x40
+0x00000337 in ?? ()
+(gdb)
+=&gt; 0x80105d49 &lt;vector64+2&gt;:     push   $0x40
+vector64 () at vectors.S:320
+320       pushl $64
+(gdb) info reg
+eax            0x16     22
+ecx            0x710    1808
+edx            0x0      0
+ebx            0xbfa8   49064
+esp            0x8dfbefe8       0x8dfbefe8
+ebp            0x2fd8   0x2fd8
+esi            0x0      0
+edi            0x0      0
+eip            0x80105d49       0x80105d49 &lt;vector64+2&gt;
+eflags         0x212    [ AF IF ]
+cs             0x8      8
+ss             0x10     16
+ds             0x23     35
+es             0x23     35
+fs             0x0      0
+gs             0x0      0
+</div></code></pre>
+<ol start="5">
+<li>outw函数调试过程</li>
+</ol>
+<pre class="hljs"><code><div>(gdb) b outw
+Breakpoint 2 at 0x80105638: file x86.h, line 30.
+(gdb) c
+Continuing.
+=&gt; 0x80105638 &lt;sys_shutdown+40&gt;:        mov    $0x604,%edx
+
+Breakpoint 2, sys_shutdown () at sysproc.c:99
+99        outw(0x604, 0x2000);
+(gdb) info reg
+eax            0x200    512
+ecx            0x1      1
+edx            0x0      0
+ebx            0x80112e4c       -2146357684
+esp            0x8dfbef40       0x8dfbef40
+ebp            0x8dfbef68       0x8dfbef68
+esi            0x8dfbefb4       -1912868940
+edi            0x8dfbefb4       -1912868940
+eip            0x80105638       0x80105638 &lt;sys_shutdown+40&gt;
+eflags         0x282    [ SF IF ]
+cs             0x8      8
+ss             0x10     16
+ds             0x10     16
+es             0x10     16
+fs             0x0      0
+gs             0x0      0
+(gdb) si
+=&gt; 0x8010563d &lt;sys_shutdown+45&gt;:        mov    $0x2000,%eax
+0x8010563d in outw (data=8192, port=1540) at x86.h:30
+30        asm volatile(&quot;out %0,%1&quot; : : &quot;a&quot; (data), &quot;d&quot; (port));
+(gdb) info reg
+eax            0x200    512
+ecx            0x1      1
+edx            0x604    1540
+ebx            0x80112e4c       -2146357684
+esp            0x8dfbef40       0x8dfbef40
+ebp            0x8dfbef68       0x8dfbef68
+esi            0x8dfbefb4       -1912868940
+edi            0x8dfbefb4       -1912868940
+eip            0x8010563d       0x8010563d &lt;sys_shutdown+45&gt;
+eflags         0x282    [ SF IF ]
+cs             0x8      8
+ss             0x10     16
+ds             0x10     16
+es             0x10     16
+fs             0x0      0
+gs             0x0      0
+
+</div></code></pre>
+<p>%cs=8，后两位为00，内核态。%esp=0x8dfbef40，不是内核空间的栈，而是用户的内核栈</p>
+<ol start="6">
+<li>swtch函数调试过程</li>
+</ol>
+<pre class="hljs"><code><div>(gdb) b swtch
+Breakpoint 1 at 0x8010466b: file swtch.S, line 11.
+(gdb) c
+Continuing.
+The target architecture is assumed to be i386
+=&gt; 0x8010466b &lt;swtch&gt;:  mov    0x4(%esp),%eax
+
+Breakpoint 1, swtch () at swtch.S:11
+11        movl 4(%esp), %eax
+(gdb) bt
+#0  swtch () at swtch.S:11
+#1  0x80103ab5 in scheduler () at proc.c:346
+#2  0x80102e3f in mpmain () at main.c:57
+#3  0x80102f7f in main () at main.c:37
+(gdb) si
+=&gt; 0x8010466f &lt;swtch+4&gt;:        mov    0x8(%esp),%edx
+12        movl 8(%esp), %edx
+(gdb) bt
+#0  swtch () at swtch.S:12
+#1  0x80103ab5 in scheduler () at proc.c:346
+#2  0x80102e3f in mpmain () at main.c:57
+#3  0x80102f7f in main () at main.c:37
+(gdb) si
+=&gt; 0x80104673 &lt;swtch+8&gt;:        push   %ebp
+15        pushl %ebp
+(gdb) bt
+#0  swtch () at swtch.S:15
+#1  0x80103ab5 in scheduler () at proc.c:346
+#2  0x80102e3f in mpmain () at main.c:57
+#3  0x80102f7f in main () at main.c:37
+(gdb) si
+=&gt; 0x80104674 &lt;swtch+9&gt;:        push   %ebx
+swtch () at swtch.S:16
+16        pushl %ebx
+(gdb) bt
+#0  swtch () at swtch.S:16
+#1  0x8010b578 in stack ()
+#2  0x80103ab5 in scheduler () at proc.c:346
+#3  0x80102e3f in mpmain () at main.c:57
+#4  0x80102f7f in main () at main.c:37
+(gdb) si
+=&gt; 0x80104675 &lt;swtch+10&gt;:       push   %esi
+swtch () at swtch.S:17
+17        pushl %esi
+(gdb) bt
+#0  swtch () at swtch.S:17
+#1  0x80112dd0 in ptable ()
+#2  0x8010b578 in stack ()
+#3  0x80103ab5 in scheduler () at proc.c:346
+#4  0x80102e3f in mpmain () at main.c:57
+#5  0x80102f7f in main () at main.c:37
+(gdb) si
+=&gt; 0x80104676 &lt;swtch+11&gt;:       push   %edi
+swtch () at swtch.S:18
+18        pushl %edi
+(gdb) bt
+#0  swtch () at swtch.S:18
+#1  0x80112780 in ?? ()
+#2  0x80102e3f in mpmain () at main.c:57
+#3  0x80102f7f in main () at main.c:37
+(gdb) si
+=&gt; 0x80104677 &lt;swtch+12&gt;:       mov    %esp,(%eax)
+swtch () at swtch.S:21
+21        movl %esp, (%eax)
+(gdb) bt
+#0  swtch () at swtch.S:21
+#1  0x80112784 in cpus ()
+#2  0x80112780 in ?? ()
+#3  0x80102e3f in mpmain () at main.c:57
+#4  0x80102f7f in main () at main.c:37
+(gdb) si
+=&gt; 0x80104679 &lt;swtch+14&gt;:       mov    %edx,%esp
+22        movl %edx, %esp
+(gdb) bt
+#0  swtch () at swtch.S:22
+#1  0x80112784 in cpus ()
+#2  0x80112780 in ?? ()
+#3  0x80102e3f in mpmain () at main.c:57
+#4  0x80102f7f in main () at main.c:37
+(gdb) si
+=&gt; 0x8010467b &lt;swtch+16&gt;:       pop    %edi
+swtch () at swtch.S:25
+25        popl %edi
+(gdb) bt
+#0  swtch () at swtch.S:25
+#1  0x00000000 in ?? ()
+Backtrace stopped: previous frame inner to this frame (corrupt stack?)
+(gdb) si
+=&gt; 0x8010467c &lt;swtch+17&gt;:       pop    %esi
+swtch () at swtch.S:26
+26        popl %esi
+(gdb) bt
+#0  swtch () at swtch.S:26
+#1  0x00000000 in ?? ()
+Backtrace stopped: previous frame inner to this frame (corrupt stack?)
+(gdb) si
+=&gt; 0x8010467d &lt;swtch+18&gt;:       pop    %ebx
+swtch () at swtch.S:27
+27        popl %ebx
+(gdb) bt
+#0  swtch () at swtch.S:27
+#1  0x00000000 in ?? ()
+Backtrace stopped: previous frame inner to this frame (corrupt stack?)
+(gdb) si
+=&gt; 0x8010467e &lt;swtch+19&gt;:       pop    %ebp
+swtch () at swtch.S:28
+28        popl %ebp
+(gdb) bt
+#0  swtch () at swtch.S:28
+#1  0x00000000 in ?? ()
+Backtrace stopped: previous frame inner to this frame (corrupt stack?)
+(gdb) si
+=&gt; 0x8010467f &lt;swtch+20&gt;:       ret
+swtch () at swtch.S:29
+29        ret
+(gdb) bt
+#0  swtch () at swtch.S:29
+#1  0x80103670 in allocproc () at proc.c:97
+</div></code></pre>
+<h2 id="3%E8%B0%83%E8%AF%95%E9%81%87%E5%88%B0%E9%97%AE%E9%A2%98%E5%8F%8A%E8%A7%A3%E5%86%B3">3.调试遇到问题及解决</h2>
+<p>Q：make qemu-gdb进入QEMU界面，然后通过关闭终端退出，再次make qemu-gdb时报错：“qemu-system-i386: -gdb tcp::25000: Failed to bind socket: Address already in use”，怎么解决？</p>
+<p>A: 发生这种问题是由于端口被程序绑定而没有释放造成。可以使用netstat -lp命令查询当前处于连接的程序以及对应的进程信息。然后用ps pid察看对应的进程，并使用kill pid关闭该进程即可。</p>
+
+</body>
+</html>
